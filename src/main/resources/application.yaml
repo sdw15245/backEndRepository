@@ -1,3 +1,21 @@
 spring:
   application:
     name: project
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update #create-drop
+      database-platform: org.hibernate.dialect.PostgreSQLDialect #org.hibernate.dialect.H2Dialect #org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+        jdbc:
+          exception-handling: ignore
+api-key:
+  odsay: W97BWiENDJB2AxK5JeRwDQ
+  korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
