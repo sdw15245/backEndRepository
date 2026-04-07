@@ -67,10 +67,14 @@ public class MixedRouteService extends AbstractRouteSearch {
         List<SegmentBoardingInfo> segmentBoardingInfos = new ArrayList<>();
         boolean firstTransitFound = false;
         int elapsedTime = 0; // 출발부터 현재 구간 시작까지 누적 소요 시간
+        int pendingWalkMinutes = 0; // 직전 환승 도보 소요 시간
 
         for (RouteSegment segment : mixedRoute.getSegments()) {
-            if (segment instanceof WalkSegment) {
-                elapsedTime += segment.getSectionTime();
+            if (segment instanceof WalkSegment walk) {
+                elapsedTime += walk.getSectionTime();
+                if (firstTransitFound) {
+                    pendingWalkMinutes += walk.getSectionTime();
+                }
                 continue;
             }
 
@@ -82,13 +86,14 @@ public class MixedRouteService extends AbstractRouteSearch {
             LocalTime latestBoardingTime = desiredArrivalTime.minusMinutes(remainingFromHere).toLocalTime();
 
             SegmentBoardingInfo segInfo = buildSegmentBoardingInfo(
-                    segment, isTransferPoint, latestBoardingTime, desiredArrivalTime);
+                    segment, isTransferPoint, latestBoardingTime, desiredArrivalTime, pendingWalkMinutes);
 
             if (segInfo != null) {
                 segmentBoardingInfos.add(segInfo);
             }
 
             elapsedTime += segment.getSectionTime();
+            pendingWalkMinutes = 0;
         }
 
         if (segmentBoardingInfos.isEmpty()) {
@@ -104,7 +109,8 @@ public class MixedRouteService extends AbstractRouteSearch {
             RouteSegment segment,
             boolean isTransferPoint,
             LocalTime latestBoardingTime,
-            LocalDateTime desiredArrivalTime) {
+            LocalDateTime desiredArrivalTime,
+            int transferWalkMinutes) {
 
         if (segment instanceof SubwayRoute.SubwaySegment subway) {
             SubwayScheduleResponse scheduleResponse = callScheduleApi(
@@ -112,6 +118,11 @@ public class MixedRouteService extends AbstractRouteSearch {
             List<SubwayBoardingInfo.TrainSchedule> trains = filterAvailableTrains(
                     scheduleResponse, desiredArrivalTime.getDayOfWeek(),
                     subway.getWayCode(), latestBoardingTime, isTransferPoint);
+
+            // 환승 지점이면 첫 번째 탑승 가능 열차의 출발 시각을 trainArrivalTime으로 사용
+            LocalTime trainArrivalTime = (isTransferPoint && !trains.isEmpty())
+                    ? trains.get(0).getDepartureTime()
+                    : null;
 
             return new SegmentBoardingInfo(
                     TRAFFIC_TYPE_SUBWAY.trafficNumber,
@@ -121,17 +132,11 @@ public class MixedRouteService extends AbstractRouteSearch {
                     latestBoardingTime,
                     trains,
                     new ArrayList<>(),
-                    null,  // trainArrivalTime: 역별 시간표 기반이라 별도 열차 도착 시각 없음
-                    0      // transferWalkMinutes: 혼합 경로의 지하철 구간은 별도 집계 없음
+                    trainArrivalTime,
+                    transferWalkMinutes
             );
 
         } else if (segment instanceof BusRoute.BusSegment bus) {
-            BusArrivalResponse arrivalResponse = callBusArrivalApi(
-                    bus.getLocalBusStationId(),
-                    bus.getLocalBusId(),
-                    bus.getStartStopOrder());
-            List<BusBoardingInfo.ArrivingBus> arrivingBuses = parseArrivingBuses(arrivalResponse);
-
             return new SegmentBoardingInfo(
                     TRAFFIC_TYPE_BUS.trafficNumber,
                     bus.getStartStop(),
@@ -139,9 +144,9 @@ public class MixedRouteService extends AbstractRouteSearch {
                     isTransferPoint,
                     latestBoardingTime,
                     new ArrayList<>(),
-                    arrivingBuses,
-                    null,  // trainArrivalTime: 버스 구간에는 해당 없음
-                    0      // transferWalkMinutes: 혼합 경로의 버스 구간은 별도 집계 없음
+                    null,
+                    null,
+                    transferWalkMinutes
             );
         }
 
@@ -228,19 +233,6 @@ public class MixedRouteService extends AbstractRouteSearch {
         log.info("subway schedule url: {}", url);
         return restTemplate.getForObject(url, SubwayScheduleResponse.class);
     }
-
-    private BusArrivalResponse callBusArrivalApi(String stationID, String busRouteId, int ord) {
-        String url = UriComponentsBuilder.fromHttpUrl(BUS_ARRIVAL_URL)
-                .queryParam("serviceKey", seoulBusApiKey)
-                .queryParam("stId", stationID)
-                .queryParam("busRouteId", busRouteId)
-                .queryParam("ord", ord)
-                .queryParam("resultType", "json")
-                .toUriString();
-        log.info("bus arrival url: {}", url);
-        return restTemplate.getForObject(url, BusArrivalResponse.class);
-    }
-
     /**
      * @param isTransferPoint false → 마감 이전 열차 (마지막 3편), true → 도착 이후 열차 (다음 3편)
      */
@@ -290,53 +282,5 @@ public class MixedRouteService extends AbstractRouteSearch {
                     .sorted(Comparator.comparing(SubwayBoardingInfo.TrainSchedule::getDepartureTime))
                     .collect(Collectors.toList());
         }
-    }
-
-    private List<BusBoardingInfo.ArrivingBus> parseArrivingBuses(BusArrivalResponse response) {
-        if (response == null
-                || response.getServiceResult() == null
-                || response.getServiceResult().getMsgBody() == null
-                || response.getServiceResult().getMsgBody().getItemList() == null
-                || response.getServiceResult().getMsgBody().getItemList().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        BusArrivalResponse.Item item = response.getServiceResult().getMsgBody().getItemList().get(0);
-        List<BusBoardingInfo.ArrivingBus> result = new ArrayList<>();
-
-        if (isValidArrival(item.getArrmsg1())) {
-            result.add(new BusBoardingInfo.ArrivingBus(
-                    item.getPlainNo1(), item.getArrmsg1(),
-                    parseIntSafe(item.getTraTime1()), parseIntSafe(item.getRerdieNum1()),
-                    item.getPrvSttn1(), parseIntSafe(item.getCongestdeg1()),
-                    "1".equals(item.getIsLast1()),
-                    parseDoubleSafe(item.getGpsX1()), parseDoubleSafe(item.getGpsY1())
-            ));
-        }
-        if (isValidArrival(item.getArrmsg2())) {
-            result.add(new BusBoardingInfo.ArrivingBus(
-                    item.getPlainNo2(), item.getArrmsg2(),
-                    parseIntSafe(item.getTraTime2()), parseIntSafe(item.getRerdieNum2()),
-                    item.getPrvSttn2(), parseIntSafe(item.getCongestdeg2()),
-                    "1".equals(item.getIsLast2()),
-                    parseDoubleSafe(item.getGpsX2()), parseDoubleSafe(item.getGpsY2())
-            ));
-        }
-        return result;
-    }
-
-    private boolean isValidArrival(String arrmsg) {
-        return arrmsg != null && !arrmsg.isBlank()
-                && !arrmsg.contains("운행종료") && !arrmsg.contains("출발대기");
-    }
-
-    private int parseIntSafe(String value) {
-        if (value == null || value.isBlank()) return 0;
-        try { return Integer.parseInt(value.trim()); } catch (NumberFormatException e) { return 0; }
-    }
-
-    private double parseDoubleSafe(String value) {
-        if (value == null || value.isBlank()) return 0.0;
-        try { return Double.parseDouble(value.trim()); } catch (NumberFormatException e) { return 0.0; }
     }
 }

@@ -1,6 +1,11 @@
 spring:
   application:
     name: project
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:          # 비밀번호 없으면 빈 값 유지
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres

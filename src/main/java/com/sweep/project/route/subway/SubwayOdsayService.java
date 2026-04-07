@@ -32,6 +32,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
     }
 
     @Override
+    //@GeoLocationCache-->다른 service에도 getroutes를 적용, 파라미터도 추후에 변경할 예정.
     public List<SubwayRoute> getRoutes(PathSearchType pathSearchType) {
         OdsayRouteResponse response = callRouteApi(PATH_TYPE_SUBWAY.pathType);
         return parseSubwayRoutes(response);

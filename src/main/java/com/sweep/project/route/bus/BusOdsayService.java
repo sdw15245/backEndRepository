@@ -3,7 +3,6 @@ package com.sweep.project.route.bus;
 import com.sweep.project.route.*;
 import com.sweep.project.route.mixed.MixedBoardingInfo;
 import com.sweep.project.route.mixed.SegmentBoardingInfo;
-import com.sweep.project.route.subway.SubwayRoute;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -49,11 +48,12 @@ public class BusOdsayService extends AbstractRouteSearch {
      *
      * @param route BusRoute 타입이어야 한다.
      */
-    /*
-    *     public MixedBoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route) {
+    @Override
+    public MixedBoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route) {
         BusRoute busRoute = (BusRoute) route;
         boolean firstFound = false;
-        int timeToFirstStop = 0;
+        int timeElapsed = 0;
+        int pendingWalkMinutes = 0;
 
         List<SegmentBoardingInfo> segmentBoardingInfos = new ArrayList<>();
 
@@ -62,10 +62,12 @@ public class BusOdsayService extends AbstractRouteSearch {
                 .minusMinutes(totalTime)
                 .toLocalTime();
 
-
         for (RouteSegment segment : busRoute.getSegments()) {
-            if (segment instanceof WalkSegment) {
-                timeToFirstStop += segment.getSectionTime();
+            if (segment instanceof WalkSegment walk) {
+                timeElapsed += walk.getSectionTime();
+                if (firstFound) {
+                    pendingWalkMinutes += walk.getSectionTime();
+                }
                 continue;
             }
             if (!(segment instanceof BusRoute.BusSegment busSegment)) continue;
@@ -74,87 +76,30 @@ public class BusOdsayService extends AbstractRouteSearch {
             firstFound = true;
 
             LocalTime latestBoardingTime = desiredArrivalTime
-                    .minusMinutes(totalTime - timeToFirstStop)
+                    .minusMinutes(totalTime - timeElapsed)
                     .toLocalTime();
-
-            String stationId=busSegment.getLocalBusStationId();
-            String busId=busSegment.getLocalBusId();
-
-            BusArrivalResponse arrivalResponse = callBusArrivalApi(
-                    stationId,
-                    busId,
-                    busSegment.getStartStopOrder()
-            );
-
-            List<BusBoardingInfo.ArrivingBus> arrivingBuses = parseArrivingBuses(arrivalResponse);
-
 
             segmentBoardingInfos.add(new SegmentBoardingInfo(
                     TRAFFIC_TYPE_BUS.trafficNumber,
-                    busSegment.getLocalBusStationId(),
-                    busSegment.getLocalBusId(),
+                    busSegment.getStartStop(),
+                    busSegment.getBusNo(),
                     isTransferPoint,
                     latestBoardingTime,
                     new ArrayList<>(),
-                    arrivingBuses
-
+                    null,
+                    null,
+                    pendingWalkMinutes
             ));
-            timeToFirstStop+=busSegment.getSectionTime();
+
+            timeElapsed += busSegment.getSectionTime();
+            pendingWalkMinutes = 0;
         }
 
         if (segmentBoardingInfos.isEmpty()) {
             throw new IllegalArgumentException("해당 경로에 버스 구간이 존재하지 않습니다.");
         }
 
-
         return new MixedBoardingInfo(recommendedDepartureTime, segmentBoardingInfos);
-    }*/
-    @Override
-    public BusBoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route) {
-        BusRoute busRoute = (BusRoute) route;
-        int timeToFirstStop = 0;
-        BusRoute.BusSegment firstBusSegment = null;
-
-        for (RouteSegment segment : busRoute.getSegments()) {
-            if (segment instanceof WalkSegment) {
-                timeToFirstStop += segment.getSectionTime();
-            } else if (segment instanceof BusRoute.BusSegment bus) {
-                firstBusSegment = bus;
-                break;
-            }
-        }
-
-        if (firstBusSegment == null) {
-            throw new IllegalArgumentException("해당 경로에 버스 구간이 존재하지 않습니다.");
-        }
-
-        int totalTime = busRoute.getTotalTime();
-        LocalTime latestBoardingTime = desiredArrivalTime
-                .minusMinutes(totalTime - timeToFirstStop)
-                .toLocalTime();
-        LocalTime recommendedDepartureTime = desiredArrivalTime
-                .minusMinutes(totalTime)
-                .toLocalTime();
-
-
-        String stationId=firstBusSegment.getLocalBusStationId();
-        String busId=firstBusSegment.getLocalBusId();
-
-        BusArrivalResponse arrivalResponse = callBusArrivalApi(
-                stationId,
-                busId,
-                firstBusSegment.getStartStopOrder()
-        );
-
-        List<BusBoardingInfo.ArrivingBus> arrivingBuses = parseArrivingBuses(arrivalResponse);
-
-        return new BusBoardingInfo(
-                firstBusSegment.getStartStop(),
-                firstBusSegment.getBusNo(),
-                latestBoardingTime,
-                recommendedDepartureTime,
-                arrivingBuses
-        );
     }
 
     // ── private helpers ──────────────────────────────────────────────────────
@@ -208,67 +153,5 @@ public class BusOdsayService extends AbstractRouteSearch {
                 info.getTotalWalk(),
                 segments
         );
-    }
-
-    private BusArrivalResponse callBusArrivalApi(String stationID, String busRouteId, int ord) {
-        String url = UriComponentsBuilder.fromHttpUrl(BUS_ARRIVAL_URL)
-                .queryParam("serviceKey", seoulBusApiKey)
-                .queryParam("stId", stationID)
-                .queryParam("busRouteId", busRouteId)
-                .queryParam("ord", ord)
-                .queryParam("resultType", "json")
-                .toUriString();
-
-        return restTemplate.getForObject(url, BusArrivalResponse.class);
-    }
-
-    private List<BusBoardingInfo.ArrivingBus> parseArrivingBuses(BusArrivalResponse response) {
-        if (response == null
-                || response.getServiceResult() == null
-                || response.getServiceResult().getMsgBody() == null
-                || response.getServiceResult().getMsgBody().getItemList() == null
-                || response.getServiceResult().getMsgBody().getItemList().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        BusArrivalResponse.Item item = response.getServiceResult().getMsgBody().getItemList().get(0);
-        List<BusBoardingInfo.ArrivingBus> result = new ArrayList<>();
-
-        if (isValidArrival(item.getArrmsg1())) {
-            result.add(new BusBoardingInfo.ArrivingBus(
-                    item.getPlainNo1(), item.getArrmsg1(),
-                    parseIntSafe(item.getTraTime1()), parseIntSafe(item.getRerdieNum1()),
-                    item.getPrvSttn1(), parseIntSafe(item.getCongestdeg1()),
-                    "1".equals(item.getIsLast1()),
-                    parseDoubleSafe(item.getGpsX1()), parseDoubleSafe(item.getGpsY1())
-            ));
-        }
-
-        if (isValidArrival(item.getArrmsg2())) {
-            result.add(new BusBoardingInfo.ArrivingBus(
-                    item.getPlainNo2(), item.getArrmsg2(),
-                    parseIntSafe(item.getTraTime2()), parseIntSafe(item.getRerdieNum2()),
-                    item.getPrvSttn2(), parseIntSafe(item.getCongestdeg2()),
-                    "1".equals(item.getIsLast2()),
-                    parseDoubleSafe(item.getGpsX2()), parseDoubleSafe(item.getGpsY2())
-            ));
-        }
-
-        return result;
-    }
-
-    private boolean isValidArrival(String arrmsg) {
-        return arrmsg != null && !arrmsg.isBlank()
-                && !arrmsg.contains("운행종료") && !arrmsg.contains("출발대기");
-    }
-
-    private int parseIntSafe(String value) {
-        if (value == null || value.isBlank()) return 0;
-        try { return Integer.parseInt(value.trim()); } catch (NumberFormatException e) { return 0; }
-    }
-
-    private double parseDoubleSafe(String value) {
-        if (value == null || value.isBlank()) return 0.0;
-        try { return Double.parseDouble(value.trim()); } catch (NumberFormatException e) { return 0.0; }
     }
 }

@@ -28,6 +28,7 @@
         .transfer-badge { display: inline-block; background: #f97316; color: white; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; }
         .error { color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 6px; }
         .loading { color: #64748b; }
+        .route-section-header { margin: 28px 0 12px; padding: 10px 16px; background: #1e40af; color: white; border-radius: 6px; font-size: 16px; font-weight: bold; }
         hr.section-divider { border: none; border-top: 2px dashed #e2e8f0; margin: 40px 0; }
         .bus-arrival-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
         .bus-arrival-card h3 { margin: 0 0 12px; color: #1e40af; }
@@ -775,13 +776,17 @@
                         return;
                     }
 
-                    const route = parseMixedRoute(mixedPaths[0]);
-                    const segmentInfos = await getMixedBoardingInfo(route, arrivalTime);
-                    resultDiv.innerHTML = renderMixed(route, segmentInfos, arrivalTime);
+                    let allHtml = '';
+                    for (let i = 0; i < mixedPaths.length; i++) {
+                        const route = parseMixedRoute(mixedPaths[i]);
+                        const segmentInfos = await getMixedBoardingInfo(route, arrivalTime);
+                        allHtml += `<div class="route-section-header">경로 ${i + 1}</div>` + renderMixed(route, segmentInfos, arrivalTime);
+                    }
+                    resultDiv.innerHTML = allHtml;
                     return;
                 }
 
-                // ── 지하철 / 버스 단일 경로 ───────────────────────────
+                // ── 지하철 / 버스 복수 경로 ───────────────────────────
                 const routeData = await callRouteApi(pathType);
 
                 if (!routeData?.result?.path?.length) {
@@ -795,30 +800,36 @@
                     return;
                 }
 
-                const rawInfo = paths[0].info;
-                const debugHtml = `
-                    <details style="margin-bottom:12px;">
-                        <summary style="cursor:pointer;font-size:13px;color:#64748b;">ODsay 1차 응답 path.info (원본 필드 확인)</summary>
-                        <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify(rawInfo, null, 2)}</pre>
-                    </details>`;
+                let allHtml = '';
+                for (let i = 0; i < paths.length; i++) {
+                    const rawInfo = paths[i].info;
+                    const debugHtml = `
+                        <details style="margin-bottom:12px;">
+                            <summary style="cursor:pointer;font-size:13px;color:#64748b;">ODsay ${i + 1}번째 경로 path.info (원본 필드 확인)</summary>
+                            <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify(rawInfo, null, 2)}</pre>
+                        </details>`;
 
-                if (pathType === 1) {
-                    const route = parseSubwayRoute(paths[0]);
-                    const info  = await getSubwayBoardingInfo(route, arrivalTime);
-                    resultDiv.innerHTML = debugHtml + `
-                        <details style="margin-bottom:12px;">
-                            <summary style="cursor:pointer;font-size:13px;color:#64748b;">파싱된 route 객체</summary>
-                            <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify({...route, segments: `[${route.segments.length}개]`}, null, 2)}</pre>
-                        </details>` + renderSubway(route, info);
-                } else {
-                    const route = parseBusRoute(paths[0]);
-                    const info  = await getBusBoardingInfo(route, arrivalTime);
-                    resultDiv.innerHTML = debugHtml + `
-                        <details style="margin-bottom:12px;">
-                            <summary style="cursor:pointer;font-size:13px;color:#64748b;">파싱된 route 객체</summary>
-                            <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify({...route, segments: `[${route.segments.length}개]`}, null, 2)}</pre>
-                        </details>` + renderBus(route, info);
+                    const routeHeader = `<div class="route-section-header">경로 ${i + 1}</div>`;
+
+                    if (pathType === 1) {
+                        const route = parseSubwayRoute(paths[i]);
+                        const info  = await getSubwayBoardingInfo(route, arrivalTime);
+                        allHtml += routeHeader + debugHtml + `
+                            <details style="margin-bottom:12px;">
+                                <summary style="cursor:pointer;font-size:13px;color:#64748b;">파싱된 route 객체</summary>
+                                <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify({...route, segments: `[${route.segments.length}개]`}, null, 2)}</pre>
+                            </details>` + renderSubway(route, info);
+                    } else {
+                        const route = parseBusRoute(paths[i]);
+                        const info  = await getBusBoardingInfo(route, arrivalTime);
+                        allHtml += routeHeader + debugHtml + `
+                            <details style="margin-bottom:12px;">
+                                <summary style="cursor:pointer;font-size:13px;color:#64748b;">파싱된 route 객체</summary>
+                                <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify({...route, segments: `[${route.segments.length}개]`}, null, 2)}</pre>
+                            </details>` + renderBus(route, info);
+                    }
                 }
+                resultDiv.innerHTML = allHtml;
             } catch (e) {
                 const debugBlock = e.debugData
                     ? `<details style="margin-top:8px;" open>

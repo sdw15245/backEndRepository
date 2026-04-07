@@ -44,6 +44,7 @@ public abstract class AbstractRouteSearch {
      */
     public abstract BoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route);
 
+
     protected OdsayRouteResponse callRouteApi(int searchPathType) {
         log.info("searchType:{}",searchPathType);
         String url = UriComponentsBuilder.fromHttpUrl(ROUTE_SEARCH_URL)

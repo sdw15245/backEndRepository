@@ -2,13 +2,14 @@ package com.sweep.project.route;
 
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 public class ApiResponse {
 
-    private TrafficResponse trafficResponse;
-    private BoardingInfo boardingInfo;
-
-    public ApiResponse(TrafficResponse trafficResponse, BoardingInfo boardingInfo) {
+    private List<? extends TrafficResponse> trafficResponse;
+    private List<BoardingInfo> boardingInfo;
+    public ApiResponse(List<? extends TrafficResponse> trafficResponse, List<BoardingInfo> boardingInfo) {
         this.trafficResponse = trafficResponse;
         this.boardingInfo = boardingInfo;
     }

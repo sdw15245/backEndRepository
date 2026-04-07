@@ -29,7 +29,7 @@ public class TestController {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private static final String BUS_ARRIVAL_URL = "http://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute";
+    private static final String BUS_ARRIVAL_URL = "https://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute";
 
 
     /**
@@ -66,10 +66,7 @@ public class TestController {
         if(routes.isEmpty()){
             return new ApiResponse(null,null);
         }
-        routes.stream().forEach(x->{
-            log.info("{}",x.toString());
-        });
-        BoardingInfo boardingInfo=trafficRouteStragy.getBoardingInfo(type, arrivalTime,routes.getFirst());
-        return new ApiResponse(routes.getFirst(),boardingInfo);
+        List<BoardingInfo> boardingInfos=trafficRouteStragy.getBoardingInfo(type, arrivalTime,routes);
+        return new ApiResponse(routes,boardingInfos);
     }
 }

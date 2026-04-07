@@ -36,17 +36,20 @@ public class TrafficRouteStragy {
     }
 
     /**
-     * 탑승 정보를 계산한다.
+     * 경로 목록 전체의 탑승 정보를 계산한다.
      *
      * @param pathSearchType     교통 수단 유형 (전략 선택에 사용)
      * @param desiredArrivalTime 목적지 도착 희망 일시
-     * @param route              {@link #getRoutes}로 얻은 단일 경로
-     * @return SubwayBoardingInfo 또는 BusBoardingInfo
+     * @param routes             {@link #getRoutes}로 얻은 경로 목록
+     * @return 각 경로에 대한 BoardingInfo 리스트
      */
-    public BoardingInfo getBoardingInfo(PathSearchType pathSearchType,
-                                        LocalDateTime desiredArrivalTime,
-                                        TrafficResponse route) {
-        return findStrategy(pathSearchType).getBoardingInfo(desiredArrivalTime, route);
+    public List<BoardingInfo> getBoardingInfo(PathSearchType pathSearchType,
+                                              LocalDateTime desiredArrivalTime,
+                                              List<? extends TrafficResponse> routes) {
+        AbstractRouteSearch strategy = findStrategy(pathSearchType);
+        return routes.stream()
+                .map(route -> strategy.getBoardingInfo(desiredArrivalTime, route))
+                .toList();
     }
 
     private AbstractRouteSearch findStrategy(PathSearchType pathSearchType) {
