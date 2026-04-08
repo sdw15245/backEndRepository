@@ -6,7 +6,10 @@ spring:
     password: guest
     port: 5672
     username: guest
-
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
 
 discord:
   mq-url:
