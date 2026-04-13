@@ -88,4 +88,4 @@ climate:
   api-url: https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst
 
 firebase:
-  config-path: ${FIREBASE_CONFIG_PATH:}
+  config-path: ./swpt.json
