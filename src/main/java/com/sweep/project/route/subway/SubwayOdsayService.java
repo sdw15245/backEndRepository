@@ -1,8 +1,13 @@
 package com.sweep.project.route.subway;
 
 import com.sweep.project.route.*;
+import com.sweep.project.route.domain.PathSearchType;
+import com.sweep.project.route.domain.WalkSegment;
+import com.sweep.project.route.dto.RequestRouteDto;
 import com.sweep.project.route.mixed.MixedBoardingInfo;
 import com.sweep.project.route.mixed.SegmentBoardingInfo;
+import com.sweep.project.util.GeoLocationCache;
+import com.sweep.project.util.OnBoardInfoAop;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -14,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.sweep.project.route.PathSearchType.PATH_TYPE_SUBWAY;
+import static com.sweep.project.route.domain.PathSearchType.PATH_TYPE_SUBWAY;
 import static com.sweep.project.route.TrafficType.TRAFFIC_TYPE_HUMAN;
 import static com.sweep.project.route.TrafficType.TRAFFIC_TYPE_SUBWAY;
 
@@ -32,9 +37,9 @@ public class SubwayOdsayService extends AbstractRouteSearch {
     }
 
     @Override
-    //@GeoLocationCache-->다른 service에도 getroutes를 적용, 파라미터도 추후에 변경할 예정.
-    public List<SubwayRoute> getRoutes(PathSearchType pathSearchType) {
-        OdsayRouteResponse response = callRouteApi(PATH_TYPE_SUBWAY.pathType);
+    @GeoLocationCache//-->다른 service에도 getroutes를 적용, 파라미터도 추후에 변경할 예정.
+    public List<SubwayRoute> getRoutes(PathSearchType type,double startLat,double startLon,double endLat,double endLon) {
+        OdsayRouteResponse response = callRouteApi(PATH_TYPE_SUBWAY.pathType,startLat,startLon,endLat,endLon);
         return parseSubwayRoutes(response);
     }
 
@@ -57,6 +62,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
      * @param route SubwayRoute 타입이어야 한다.
      * @return MixedBoardingInfo – segmentBoardingInfos 에 구간별 탑승 정보가 순서대로 담긴다.
      */
+    @OnBoardInfoAop
     @Override
     public MixedBoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route) {
         SubwayRoute subwayRoute = (SubwayRoute) route;

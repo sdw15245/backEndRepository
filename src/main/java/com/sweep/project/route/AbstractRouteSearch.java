@@ -1,5 +1,7 @@
 package com.sweep.project.route;
 
+import com.sweep.project.route.domain.PathSearchType;
+import com.sweep.project.route.dto.RequestRouteDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestTemplate;
@@ -34,7 +36,8 @@ public abstract class AbstractRouteSearch {
      * 경로 목록을 조회한다.
      * 반환 타입은 구체 클래스에 따라 List&lt;SubwayRoute&gt; 또는 List&lt;BusRoute&gt;.
      */
-    public abstract List<? extends TrafficResponse> getRoutes(PathSearchType pathSearchType);
+    public abstract List<? extends TrafficResponse> getRoutes(PathSearchType type,double startLat,double startLon
+            ,double endLat,double endLon);
 
     /**
      * 탑승 정보를 계산한다.
@@ -45,15 +48,17 @@ public abstract class AbstractRouteSearch {
     public abstract BoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route);
 
 
-    protected OdsayRouteResponse callRouteApi(int searchPathType) {
+    protected OdsayRouteResponse callRouteApi(int searchPathType,
+                                              double startLat,double startLon
+            ,double endLat,double endLon) {
         log.info("searchType:{}",searchPathType);
         String url = UriComponentsBuilder.fromHttpUrl(ROUTE_SEARCH_URL)
                 .queryParam("lang",0)
                 .queryParam("apiKey", odsayKey)
-                .queryParam("SX", START_X)
-                .queryParam("SY", START_Y)
-                .queryParam("EX", END_X)
-                .queryParam("EY", END_Y)
+                .queryParam("SX", startLat)
+                .queryParam("SY", startLon)
+                .queryParam("EX", endLat)
+                .queryParam("EY",endLon)
                 //.queryParam("SearchType",0)
                 .queryParam("SearchPathType", searchPathType)
                 .queryParam("output","json")

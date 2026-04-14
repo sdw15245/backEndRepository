@@ -1,10 +1,7 @@
 package com.sweep.project.member.controller;
 
-import com.sweep.project.member.domain.Member;
 import com.sweep.project.member.service.MemberService;
-import com.sweep.project.member.service.SecurityMemberReadService;
 import lombok.RequiredArgsConstructor;
-import org.aspectj.weaver.AjcMemberMaker;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,7 +14,9 @@ public class MemberController {
     private final MemberService memberService;
 
     @DeleteMapping("/delete")
-    public void deleteMember(){
+    public String deleteMember(){
         memberService.deleteMember();
+
+        return "ok";
     }
 }

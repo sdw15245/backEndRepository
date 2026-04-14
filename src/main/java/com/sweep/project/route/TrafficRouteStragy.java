@@ -1,5 +1,7 @@
 package com.sweep.project.route;
 
+import com.sweep.project.route.domain.PathSearchType;
+import com.sweep.project.route.dto.RequestRouteDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,12 +29,12 @@ public class TrafficRouteStragy {
     /**
      * 경로 목록을 조회한다.
      *
-     * @param pathSearchType 조회할 교통 수단 유형
      * @return SubwayRoute 또는 BusRoute 의 리스트
      * @throws IllegalArgumentException 해당 타입을 처리하는 전략이 없는 경우
      */
-    public List<? extends TrafficResponse> getRoutes(PathSearchType pathSearchType) {
-        return findStrategy(pathSearchType).getRoutes(pathSearchType);
+    public List<? extends TrafficResponse> getRoutes(PathSearchType pathSearchType,double startLat,double startLon
+            ,double endLat,double endLon) {
+        return findStrategy(pathSearchType).getRoutes(pathSearchType,startLat,startLon,endLat,endLon);
     }
 
     /**

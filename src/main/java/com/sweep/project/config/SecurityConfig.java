@@ -30,7 +30,13 @@ public class SecurityConfig {
     private final WebConfig webConfig;
 
     private final static String[] freePath = {
-            "/member/logout"
+            "/member/logout",
+            "/v3/api-docs",
+            "/v3/api-docs/**",      // 추가
+            "/v3/api-docs.yaml",    // 추가
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**" // 추가
     };
     private final static String[] adminPath = {
     };
