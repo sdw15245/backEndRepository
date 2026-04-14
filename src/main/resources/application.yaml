@@ -87,8 +87,13 @@ api-key:
 jwt:
   issuer: test
   secret-key: myverylongsecretkeythatisatleast32charsssss
+
 discord:
   mq-url:
+
 climate:
   api-key:
   api-url: https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst
+
+firebase:
+  config-path: ./swpt.json
