@@ -1,6 +1,11 @@
 spring:
   application:
     name: project
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: test         # 비밀번호 없으면 빈 값 유지
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
@@ -16,6 +21,9 @@ spring:
         default_batch_fetch_size: 100
         jdbc:
           exception-handling: ignore
+api-key:
+  odsay: W97BWiENDJB2AxK5JeRwDQ
+  korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
   data:
     redis:
       host: localhost
