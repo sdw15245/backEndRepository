@@ -42,11 +42,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 
     private static final String[] freePassPath = {
-           "/member/logout"
+            "/member/logout",
+            "/v3/api-docs",      // /v3 → /v3/api-docs 로 더 명확하게
+            "/v3/api-docs.yaml",
+            "/swagger-ui",
+            "/swagger-resources"
     };
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
+        log.info("Request URI: {}={}", path,Arrays.stream(freePassPath).anyMatch(path::startsWith));
         return Arrays.stream(freePassPath).anyMatch(path::startsWith);
     }
 
