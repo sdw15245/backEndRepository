@@ -1,12 +1,15 @@
 package com.sweep.project.route.bus;
 
 import com.sweep.project.route.*;
+import com.sweep.project.route.domain.PathSearchType;
+import com.sweep.project.route.domain.WalkSegment;
+import com.sweep.project.route.dto.RequestRouteDto;
 import com.sweep.project.route.mixed.MixedBoardingInfo;
 import com.sweep.project.route.mixed.SegmentBoardingInfo;
+import com.sweep.project.util.GeoLocationCache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -14,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.sweep.project.route.PathSearchType.PATH_TYPE_BUS;
+import static com.sweep.project.route.domain.PathSearchType.PATH_TYPE_BUS;
 import static com.sweep.project.route.TrafficType.*;
 
 @Service
@@ -28,10 +31,11 @@ public class BusOdsayService extends AbstractRouteSearch {
         return pathSearchType == PATH_TYPE_BUS;
     }
 
+    @GeoLocationCache
     @Override
-    public List<BusRoute> getRoutes(PathSearchType pathSearchType) {
+    public List<BusRoute> getRoutes(PathSearchType type,double startLat,double startLon,double endLat,double endLon) {
         log.info("start");
-        OdsayRouteResponse response = callRouteApi(PATH_TYPE_BUS.pathType);
+        OdsayRouteResponse response = callRouteApi(PATH_TYPE_BUS.pathType,startLat,startLon,endLat,endLon);
         log.info("response:{}",response);
         return parseBusRoutes(response);
     }

@@ -1,5 +1,7 @@
-package com.sweep.project.route;
+package com.sweep.project.route.domain;
 
+import com.sweep.project.route.BoardingInfo;
+import com.sweep.project.route.TrafficResponse;
 import lombok.Getter;
 
 import java.util.List;

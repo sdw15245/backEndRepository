@@ -1,15 +1,14 @@
 package com.sweep.project.route.controller;
 
 import com.sweep.project.route.*;
-import com.sweep.project.route.bus.BusRoute;
+import com.sweep.project.route.domain.ApiResponse;
+import com.sweep.project.route.domain.PathSearchType;
+import com.sweep.project.route.dto.RequestRouteDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -60,9 +59,13 @@ public class TestController {
      */
     @GetMapping("/boarding")
     public ApiResponse getBoardingInfo(
-            @RequestParam PathSearchType type
-            ,@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime) {
-        List<? extends TrafficResponse> routes = trafficRouteStragy.getRoutes(type);
+            @RequestParam PathSearchType type,
+            @RequestParam double startLat,
+            @RequestParam double startLon,
+            @RequestParam double endLat,
+            @RequestParam double endLon,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime) {
+        List<? extends TrafficResponse> routes = trafficRouteStragy.getRoutes(type,startLat,startLon,endLat,endLon);
         if(routes.isEmpty()){
             return new ApiResponse(null,null);
         }

@@ -1,4 +1,4 @@
-package com.sweep.project.route;
+package com.sweep.project.route.domain;
 
 import java.util.Arrays;
 

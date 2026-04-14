@@ -1,12 +1,14 @@
 package com.sweep.project.route.mixed;
 
 import com.sweep.project.route.*;
-import com.sweep.project.route.bus.BusArrivalResponse;
-import com.sweep.project.route.bus.BusBoardingInfo;
 import com.sweep.project.route.bus.BusRoute;
+import com.sweep.project.route.domain.PathSearchType;
+import com.sweep.project.route.domain.WalkSegment;
+import com.sweep.project.route.dto.RequestRouteDto;
 import com.sweep.project.route.subway.SubwayBoardingInfo;
 import com.sweep.project.route.subway.SubwayRoute;
 import com.sweep.project.route.subway.SubwayScheduleResponse;
+import com.sweep.project.util.GeoLocationCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -18,8 +20,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.sweep.project.route.PathSearchType.PATH_TYPE_ANYONE;
+import static com.sweep.project.route.domain.PathSearchType.PATH_TYPE_ANYONE;
 import static com.sweep.project.route.TrafficType.*;
+import static com.sweep.project.route.domain.PathSearchType.PATH_TYPE_BUS;
 
 /**
  * SearchPathType=0(전체) 조회 후 pathType=3(버스+지하철 혼합) 경로를 처리하는 전략.
@@ -40,9 +43,11 @@ public class MixedRouteService extends AbstractRouteSearch {
         return pathSearchType == PATH_TYPE_ANYONE;
     }
 
+    @GeoLocationCache
     @Override
-    public List<MixedRoute> getRoutes(PathSearchType pathSearchType) {
-        OdsayRouteResponse response = callRouteApi(PATH_TYPE_ANYONE.pathType);
+    public List<MixedRoute> getRoutes(PathSearchType type,double startLat,double startLon,double endLat,double endLon) {
+        OdsayRouteResponse response = callRouteApi(PATH_TYPE_ANYONE.pathType,startLat,startLon,endLat,endLon);
+
         return parseMixedRoutes(response);
     }
 

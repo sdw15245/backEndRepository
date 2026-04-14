@@ -1,5 +1,6 @@
-package com.sweep.project.route;
+package com.sweep.project.route.domain;
 
+import com.sweep.project.route.RouteSegment;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
