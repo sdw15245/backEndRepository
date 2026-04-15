@@ -5,7 +5,7 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: test         # 비밀번호 없으면 빈 값 유지
+      password: test
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     username: postgres
@@ -13,31 +13,24 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update #create-drop
-      database-platform: org.hibernate.dialect.PostgreSQLDialect #org.hibernate.dialect.H2Dialect #org.hibernate.dialect.MySQL8Dialect
+      ddl-auto: update
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
     properties:
       hibernate:
         default_batch_fetch_size: 100
         jdbc:
           exception-handling: ignore
-api-key:
-  odsay: W97BWiENDJB2AxK5JeRwDQ
-  korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: test
   rabbitmq:
     host: localhost
     password: guest
     port: 5672
     username: guest
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    enabled: false
+  springdoc:
+    api-docs:
+      path: /v3/api-docs
+    swagger-ui:
+      enabled: true
   security:
     oauth2:
       client:
@@ -82,7 +75,11 @@ api-key:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-info-authentication-method: header
-            user-name-attribute: id # Kakao 응답 값 id, connected_at, properties, kakao_accou
+            user-name-attribute: id
+
+api-key:
+  odsay: W97BWiENDJB2AxK5JeRwDQ
+  korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
 
 jwt:
   issuer: test
