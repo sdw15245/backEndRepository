@@ -24,7 +24,7 @@ RUN ./gradlew clean bootJar --no-daemon
 FROM eclipse-temurin:21-jdk
 
 # 실행 디렉토리 설정
-WORKDIR /moira-backend-server
+WORKDIR /sweepMap
 
 # 빌드 단계에서 생성된 JAR 파일 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
