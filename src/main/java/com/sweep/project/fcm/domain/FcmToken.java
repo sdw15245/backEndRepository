@@ -20,9 +20,17 @@ public class FcmToken {
     @Column(nullable = false, unique = true)
     private String token;
 
+    // 토큰 정리 위한 마지막 토큰 갱신 시간
+    private LocalDateTime updateAt;
+
     @Builder
     public FcmToken(Long memberId, String token) {
         this.memberId = memberId;
         this.token = token;
+        this.updateAt = LocalDateTime.now();
+    }
+
+    public void updateToken(){ // 토큰 갱신
+        this.updateAt = LocalDateTime.now();
     }
 }
