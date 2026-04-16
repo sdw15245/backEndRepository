@@ -80,11 +80,14 @@ spring:
 jwt:
   issuer: test
   secret-key: myverylongsecretkeythatisatleast32charsssss
+
 discord:
   mq-url:
+
 climate:
   api-key:
   api-url: https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst
+
 api-key:
   odsay: W97BWiENDJB2AxK5JeRwDQ
   korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
@@ -96,3 +99,5 @@ bus:
       gbis-url: https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalItemv2
     station-ord:
       gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationList
+firebase:
+  config-path: ./swpt.json
