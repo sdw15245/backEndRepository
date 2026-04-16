@@ -1,0 +1,26 @@
+version: '3.9'
+
+services:
+  app:
+    image: ${DOCKER_USER_NAME}/${DOCKER_IMAGE_NAME}:latest # 사용할 이미지 이름
+    build:
+      context: . # Dockerfile이 위치한 디렉토리
+      dockerfile: Dockerfile # 빌드에 사용할 Dockerfile
+    ports:
+      - "8080:8080" # 호스트와 컨테이너의 포트 매핑
+    networks:
+      - sweepMap-network
+    restart: always
+    
+  redis:  
+    image: redis:7-alpine
+    command: redis-server --requirepass test
+    ports:
+      - "6379:6379"
+    networks:
+      - sweepMap-network
+    restart: always
+    
+networks:
+  sweepMap-network:
+    external: true
