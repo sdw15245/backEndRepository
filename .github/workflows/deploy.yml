@@ -74,7 +74,7 @@ jobs:
               echo "Java is already installed."
             fi
 
-      - name: Deploy to AWS and Restart Services with Docker Compose
+      - name: Deploy to VULTR and Restart Services with Docker Compose
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.VULTR_SERVER_IP }}
