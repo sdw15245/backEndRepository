@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:     
-      - name: Install Java on AWS
+      - name: Install Java on vultr
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.VULTR_SERVER_IP }}
