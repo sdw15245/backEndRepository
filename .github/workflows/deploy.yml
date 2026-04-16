@@ -3,10 +3,10 @@ name: Deploy sweepMap Server to vultr
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches-ignore:
-      - main
+      - master
       
 jobs:
   build-and-push:
