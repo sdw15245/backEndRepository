@@ -196,6 +196,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                     TRAFFIC_TYPE_SUBWAY.trafficNumber,
                     startStation,
                     lineName,
+                    null, 0, null, 0, 0,
                     isTransferPoint,
                     latestBoardingTime,
                     trains,

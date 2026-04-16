@@ -1,16 +1,14 @@
 package com.sweep.project.route.controller;
 
+import com.sweep.project.route.bus.BusArrivalInfo;
+import com.sweep.project.route.bus.BusArrivalService;
 import com.sweep.project.route.*;
 import com.sweep.project.route.domain.ApiResponse;
 import com.sweep.project.route.domain.PathSearchType;
-import com.sweep.project.route.dto.RequestRouteDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,40 +20,27 @@ import java.util.List;
 public class TestController {
 
     private final TrafficRouteStragy trafficRouteStragy;
-
-    @Value("${api-key.korea-data-portal}")
-    private String seoulBusApiKey;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    private static final String BUS_ARRIVAL_URL = "https://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute";
-
+    private final BusArrivalService busArrivalService;
 
     /**
-     * 서울버스 도착 정보 프록시.
-     * GET /route/bus/arrival?stId=&busRouteId=&ord=
+     * 버스 도착 정보 조회.
+     * GET /route/bus/arrival?stId=&busRouteId=&ord=&providerCode=
+     *
+     * providerCode: 2 = 경기도, 4 = 서울 (기본값)
+     * ord가 0이면 BIS API를 통해 자동 조회한다.
      */
     @GetMapping("/bus/arrival")
-    public String getBusArrival(
+    public BusArrivalInfo getBusArrival(
             @RequestParam String stId,
             @RequestParam String busRouteId,
-            @RequestParam(defaultValue = "0") int ord) {
-        log.info("stdId:{}-busRouteId:{}",stId,busRouteId);
-        String url = UriComponentsBuilder.fromHttpUrl(BUS_ARRIVAL_URL)
-                .queryParam("serviceKey", seoulBusApiKey)
-                .queryParam("stId", stId)
-                .queryParam("busRouteId", busRouteId)
-                .queryParam("ord", ord)
-                .queryParam("resultType", "json")
-                .toUriString();
-        log.info("bus arrival proxy url: {}", url);
-        return restTemplate.getForObject(url, String.class);
+            @RequestParam(defaultValue = "0") int ord,
+            @RequestParam(defaultValue = "4") int providerCode) {
+        return busArrivalService.getBusArrival(stId, busRouteId, ord, providerCode);
     }
+
     /**
      * 탑승 정보 조회.
      * GET /route/boarding?type=PATH_TYPE_SUBWAY&arrivalTime=2024-06-01T09:00:00
-     *
-     * routeIndex: getRoutes 결과 중 사용할 경로 번호 (기본값 0 = 첫 번째 경로)
      */
     @GetMapping("/boarding")
     public ApiResponse getBoardingInfo(
@@ -65,11 +50,11 @@ public class TestController {
             @RequestParam double endLat,
             @RequestParam double endLon,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime) {
-        List<? extends TrafficResponse> routes = trafficRouteStragy.getRoutes(type,startLat,startLon,endLat,endLon);
-        if(routes.isEmpty()){
-            return new ApiResponse(null,null);
+        List<? extends TrafficResponse> routes = trafficRouteStragy.getRoutes(type, startLat, startLon, endLat, endLon);
+        if (routes.isEmpty()) {
+            return new ApiResponse(null, null);
         }
-        List<BoardingInfo> boardingInfos=trafficRouteStragy.getBoardingInfo(type, arrivalTime,routes);
-        return new ApiResponse(routes,boardingInfos);
+        List<BoardingInfo> boardingInfos = trafficRouteStragy.getBoardingInfo(type, arrivalTime, routes);
+        return new ApiResponse(routes, boardingInfos);
     }
 }

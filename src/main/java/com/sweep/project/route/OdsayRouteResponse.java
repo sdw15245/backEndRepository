@@ -80,10 +80,13 @@ public class OdsayRouteResponse {
         private int endID;
         /** 방향 코드 (1: 상행, 2: 하행) */
         private int wayCode;
-        /** 출발 정류소의 노선 내 순번 (버스 구간에만 존재, 서울 버스 API의 endOrd로 사용) */
-        private int startExNo;
-        /*** 출발 버스 정류소의 local id값-->즉 공공데이터 포털에서 제공하는 서울시 버스 정류장id값.*/
+        // startExNo: ODsay 스펙에 없는 필드 - ord는 각 BIS API에서 별도 조회
+        /** 출발 버스 정류소의 local id값 - 공공데이터 포털에서 제공하는 서울시 버스 정류장 ID 값 */
         private String startLocalStationID;
+        /** 각 지역 출발 정류장 고유번호 (BIS 제공지역인 경우에만 존재) */
+        private String startArsID;
+        /** 출발 정류장 BIS 코드 (BIS 제공지역인 경우에만 존재) */
+        private int startStationProviderCode;
         /** 출발 X 좌표 */
         private BigDecimal startX;
         /** 출발 Y 좌표 */
@@ -120,8 +123,10 @@ public class OdsayRouteResponse {
         /** 버스 고유 ID */
         private int busID;
         /**
-         * >즉 공공데이터 포털에서 제공하는 서울시 버스id값.
-         * **/
+         * 공공데이터 포털에서 제공하는 서울시 버스 ID 값.
+         */
         private String busLocalBlID;
+        /** BIS 코드 (BIS 제공지역인 경우에만 존재) */
+        private int busProviderCode;
     }
 }
