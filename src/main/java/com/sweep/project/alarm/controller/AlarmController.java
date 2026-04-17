@@ -1,12 +1,13 @@
 package com.sweep.project.alarm.controller;
 
 import com.sweep.project.alarm.domain.Alarm;
+import com.sweep.project.alarm.dto.AlarmCreateRequest;
+import com.sweep.project.alarm.dto.AlarmUpdateRequest;
 import com.sweep.project.alarm.service.AlarmService;
 import com.sweep.project.member.service.SecurityMemberReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -18,17 +19,9 @@ public class AlarmController {
     private final SecurityMemberReadService securityMemberReadService;
 
     @PostMapping
-    public Alarm createAlarm(@RequestParam Long routeTicketId,
-                             @RequestParam Long routeId,
-                             @RequestParam LocalDateTime arrivalTime,
-                             @RequestParam LocalDateTime startTime,
-                             @RequestParam Integer prepareTime,
-                             @RequestParam Integer interval,
-                             @RequestParam Boolean isLoop,
-                             @RequestParam String day) {
+    public Alarm createAlarm(@RequestBody AlarmCreateRequest request) {
         Long memberId = securityMemberReadService.securityMemberRead().getId();
-        return alarmService.createAlarm(memberId, routeTicketId, routeId,
-                arrivalTime, startTime, prepareTime, interval, isLoop, day);
+        return alarmService.createAlarm(memberId, request);
     }
 
     @GetMapping
@@ -39,12 +32,8 @@ public class AlarmController {
 
     @PutMapping("/{alarmId}")
     public void updateAlarm(@PathVariable Long alarmId,
-                            @RequestParam LocalDateTime arrivalTime,
-                            @RequestParam LocalDateTime startTime,
-                            @RequestParam Integer prepareTime,
-                            @RequestParam Boolean isLoop,
-                            @RequestParam String day) {
-        alarmService.updateAlarm(alarmId, arrivalTime, startTime, prepareTime, isLoop, day);
+                            @RequestBody AlarmUpdateRequest request) {
+        alarmService.updateAlarm(alarmId, request);
     }
 
     @DeleteMapping("/{alarmId}")
