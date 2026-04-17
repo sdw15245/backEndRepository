@@ -3,6 +3,7 @@ package com.sweep.project;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+//@EnableScheduling     임시주석
 @SpringBootApplication
 public class ProjectApplication {
 

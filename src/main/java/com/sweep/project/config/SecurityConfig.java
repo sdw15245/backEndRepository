@@ -36,7 +36,7 @@ public class SecurityConfig {
             "/v3/api-docs.yaml",    // 추가
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/swagger-resources/**" // 추가
+            "/swagger-resources/**", // 추가
     };
     private final static String[] adminPath = {
     };

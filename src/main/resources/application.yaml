@@ -13,8 +13,8 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update #create-drop
-      database-platform: org.hibernate.dialect.PostgreSQLDialect #org.hibernate.dialect.H2Dialect #org.hibernate.dialect.MySQL8Dialect
+      ddl-auto: update
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
     properties:
       hibernate:
@@ -75,7 +75,6 @@ spring:
     path: /v3/api-docs
   swagger-ui:
     enabled: true
-
 
 jwt:
   issuer: test
