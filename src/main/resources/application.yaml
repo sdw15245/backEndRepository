@@ -100,4 +100,4 @@ bus:
     station-ord:
       gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationList
 firebase:
-  config-path: ./swpt.json
+  config-path: ${FIREBASE_TOKEN_PATH}
