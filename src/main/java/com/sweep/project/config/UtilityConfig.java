@@ -10,9 +10,10 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class UtilityConfig {
     @Bean
-    public ObjectMapper objectMapper(){
-        ObjectMapper objectMapper=new ObjectMapper();
-        return objectMapper;
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
     @Bean
     public RestTemplate restTemplate(){
