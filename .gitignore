@@ -41,3 +41,6 @@ swpt.json
 firebase-service-account.json
 *serviceAccount*.json
 *firebase-adminsdk*.json
+
+### QueryDSL generated ###
+src/main/generated/

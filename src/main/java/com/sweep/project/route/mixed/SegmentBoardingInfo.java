@@ -29,6 +29,18 @@ public class SegmentBoardingInfo {
     /** 버스 번호 또는 지하철 노선명 */
     private String transportId;
 
+    /** 각 지역 버스노선 ID (BIS 제공지역 버스 구간인 경우에만 존재) */
+    private String localBusId;
+    /** 버스노선 BIS 코드 */
+    private int busProviderCode;
+
+    /** 각 지역 정류장 ID (BIS 제공지역 버스 구간인 경우에만 존재) */
+    private String localStationId;
+    /** 정류장 BIS 코드 */
+    private int stationProviderCode;
+    /** 탑승 정류소의 노선 내 순번 (버스 도착 API ord 파라미터) */
+    private int startStopOrder;
+
     /**
      * 환승 지점 여부.
      * false = 첫 번째 탑승, true = 환승 지점

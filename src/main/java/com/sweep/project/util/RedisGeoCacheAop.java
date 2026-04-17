@@ -72,7 +72,8 @@ public class RedisGeoCacheAop {
         RLock  lock    = redissonClient.getLock(lockKey);
         boolean locked = lock.tryLock(LOCK_WAIT_SEC, LOCK_LEASE_SEC, TimeUnit.SECONDS);
         if (!locked) {
-            log.warn("[GeoCache] 분산락 획득 실패 lockKey={}", lockKey);
+            log.warn("[GeoCache] 분산락 획득 실패, 요청을 처리하지 않습니다. lockKey={}", lockKey);
+            return List.of();
         }
 
         try {

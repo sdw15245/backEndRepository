@@ -87,6 +87,11 @@ public class BusOdsayService extends AbstractRouteSearch {
                     TRAFFIC_TYPE_BUS.trafficNumber,
                     busSegment.getStartStop(),
                     busSegment.getBusNo(),
+                    busSegment.getLocalBusId(),
+                    busSegment.getBusProviderCode(),
+                    busSegment.getLocalBusStationId(),
+                    busSegment.getStationProviderCode(),
+                    busSegment.getStartStopOrder(),
                     isTransferPoint,
                     latestBoardingTime,
                     new ArrayList<>(),
@@ -139,9 +144,11 @@ public class BusOdsayService extends AbstractRouteSearch {
                                 subPath.getDistance(),
                                 lane.getBusID(),
                                 subPath.getStartID(),
-                                subPath.getStartExNo(),
+                                0, // ord는 BIS API에서 별도 조회
                                 subPath.getStartLocalStationID(),
-                                lane.getBusLocalBlID()
+                                subPath.getStartStationProviderCode(),
+                                lane.getBusLocalBlID(),
+                                lane.getBusProviderCode()
                         ));
                     }
                 }
