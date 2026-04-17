@@ -65,7 +65,6 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-info-authentication-method: header
-            user-name-attribute: id
             user-name-attribute: id # Kakao 응답 값 id, connected_at, properties, kakao_accou
   rabbitmq:
     host: localhost
