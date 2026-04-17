@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @NoArgsConstructor
@@ -21,16 +23,16 @@ public class FcmToken {
     private String token;
 
     // 토큰 정리 위한 마지막 토큰 갱신 시간
-    private LocalDateTime updateAt;
+    private LocalDateTime updatedAt;
 
     @Builder
     public FcmToken(Long memberId, String token) {
         this.memberId = memberId;
         this.token = token;
-        this.updateAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public void updateToken(){ // 토큰 갱신
-        this.updateAt = LocalDateTime.now();
+    public void updateTimestamp(){ // 토큰 갱신
+        this.updatedAt = LocalDateTime.now();
     }
 }
