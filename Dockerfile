@@ -12,8 +12,8 @@ COPY settings.gradle .
 RUN chmod +x ./gradlew
 
 # Gradle 종속성을 캐싱하여 빌드 속도 향상
-RUN ./gradlew dependencies --no-daemon
-
+#RUN ./gradlew dependencies --no-daemon
+RUN ./gradlew clean bootJar --no-daemon && ls -la /app/build/libs/
 # 소스 코드 복사
 COPY src src
 
