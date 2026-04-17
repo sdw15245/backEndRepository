@@ -32,12 +32,25 @@ public class RouteTicket {
     @JoinColumn(name = "route_id", nullable = false)
     private Route route;
 
+    private Boolean needCheck=false;
+
     private LocalDateTime createdAt;
+
+    private Boolean deleted=false;
 
     @Builder
     public RouteTicket(Member member, Route route) {
         this.member = member;
         this.route = route;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public void updateDeleted(){
+        this.deleted=!this.deleted;
+    }
+
+
+    public void updateNeedCheck(){
+        this.needCheck=!this.needCheck;
     }
 }

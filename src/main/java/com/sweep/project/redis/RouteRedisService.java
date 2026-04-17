@@ -278,6 +278,43 @@ public class RouteRedisService {
                 toTypeName(type), timeHHmm, dayCode, startLat, startLon, endLat, endLon);
     }
 
+    // ── 버스 정류소 순번(ord) 캐시 ────────────────────────────────────────────
+
+    /**
+     * providerCode + busRouteId + stId 를 키로 ord(정류소 순번)를 저장한다.
+     *
+     * <pre>
+     * Key  : bus:ord:{providerCode}:{busRouteId}:{stId}
+     * Value: ord (문자열)
+     * TTL  : 7일 (정류소 순번은 노선 변경 시에만 바뀌므로 장기 캐싱)
+     * </pre>
+     */
+    public void saveOrd(int providerCode, String busRouteId, String stId, int ord) {
+        String key = buildOrdKey(providerCode, busRouteId, stId);
+        stringRedisTemplate.opsForValue().setIfAbsent(key, String.valueOf(ord), 30, TimeUnit.MINUTES);
+        log.info("[Redis][ord] 저장 key={} ord={}", key, ord);
+    }
+
+    /**
+     * providerCode + busRouteId + stId 키로 ord 를 조회한다.
+     *
+     * @return 캐시 히트 시 ord 값, 미스 시 {@link java.util.OptionalInt#empty()}
+     */
+    public java.util.OptionalInt getOrd(int providerCode, String busRouteId, String stId) {
+        String key = buildOrdKey(providerCode, busRouteId, stId);
+        String value = stringRedisTemplate.opsForValue().get(key);
+        if (value == null) {
+            log.debug("[Redis][ord] 캐시 미스 key={}", key);
+            return java.util.OptionalInt.empty();
+        }
+        log.info("[Redis][ord] 캐시 히트 key={} ord={}", key, value);
+        return java.util.OptionalInt.of(Integer.parseInt(value));
+    }
+
+    private String buildOrdKey(int providerCode, String busRouteId, String stId) {
+        return "bus:ord:" + providerCode + ":" + busRouteId + ":" + stId;
+    }
+
     public static String toTypeName(PathSearchType type) {
         return switch (type) {
             case PATH_TYPE_SUBWAY -> "subway";

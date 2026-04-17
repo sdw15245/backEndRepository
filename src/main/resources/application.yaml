@@ -21,16 +21,6 @@ spring:
         default_batch_fetch_size: 100
         jdbc:
           exception-handling: ignore
-  rabbitmq:
-    host: localhost
-    password: guest
-    port: 5672
-    username: guest
-  springdoc:
-    api-docs:
-      path: /v3/api-docs
-    swagger-ui:
-      enabled: true
   security:
     oauth2:
       client:
@@ -76,10 +66,16 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-info-authentication-method: header
             user-name-attribute: id
-
-api-key:
-  odsay: W97BWiENDJB2AxK5JeRwDQ
-  korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
+            user-name-attribute: id # Kakao 응답 값 id, connected_at, properties, kakao_accou
+  rabbitmq:
+    host: localhost
+    password: guest
+    port: 5672
+    username: guest
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: false
 
 jwt:
   issuer: test
@@ -92,5 +88,16 @@ climate:
   api-key:
   api-url: https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst
 
+api-key:
+  odsay: W97BWiENDJB2AxK5JeRwDQ
+  korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
+
+bus:
+  api:
+    arrival:
+      seoul-url: https://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute
+      gbis-url: https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalItemv2
+    station-ord:
+      gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationList
 firebase:
   config-path: ./swpt.json

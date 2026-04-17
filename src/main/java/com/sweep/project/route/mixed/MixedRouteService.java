@@ -133,6 +133,7 @@ public class MixedRouteService extends AbstractRouteSearch {
                     TRAFFIC_TYPE_SUBWAY.trafficNumber,
                     subway.getStartStation(),
                     subway.getLineName(),
+                    null, 0, null, 0, 0,
                     isTransferPoint,
                     latestBoardingTime,
                     trains,
@@ -146,6 +147,11 @@ public class MixedRouteService extends AbstractRouteSearch {
                     TRAFFIC_TYPE_BUS.trafficNumber,
                     bus.getStartStop(),
                     bus.getBusNo(),
+                    bus.getLocalBusId(),
+                    bus.getBusProviderCode(),
+                    bus.getLocalBusStationId(),
+                    bus.getStationProviderCode(),
+                    bus.getStartStopOrder(),
                     isTransferPoint,
                     latestBoardingTime,
                     new ArrayList<>(),
@@ -209,9 +215,11 @@ public class MixedRouteService extends AbstractRouteSearch {
                             subPath.getDistance(),
                             lane.getBusID(),
                             subPath.getStartID(),
-                            subPath.getStartExNo(),
+                            0, // ord는 BIS API에서 별도 조회
                             subPath.getStartLocalStationID(),
-                            lane.getBusLocalBlID()
+                            subPath.getStartStationProviderCode(),
+                            lane.getBusLocalBlID(),
+                            lane.getBusProviderCode()
                     ));
                 }
             }
