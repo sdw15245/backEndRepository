@@ -64,13 +64,19 @@ public class BusRoute implements TrafficResponse {
          */
         private int startStopId;
         /**
-         * 탑승 정류소의 노선 내 순번 (ODsay subPath.startExNo).
-         * getArrInfoByRoute 호출 시 ord 파라미터로 사용.
+         * 탑승 정류소의 노선 내 순번 (ord).
+         * ODsay에 해당 필드 없음 - getBusArrival 내부에서 BIS API로 자동 조회.
          */
         private int startStopOrder;
 
+        /** 각 지역 출발 정류장 ID (BIS 제공지역인 경우에만 존재) */
         private String localBusStationId;
+        /** 각 지역 출발 정류장 BIS 코드 (BIS 제공지역인 경우에만 존재) */
+        private int stationProviderCode;
+        /** 각 지역 버스노선 ID (BIS 제공지역인 경우에만 존재) */
         private String localBusId;
+        /** 버스노선 BIS 코드 (BIS 제공지역인 경우에만 존재) */
+        private int busProviderCode;
 
         @Override
         public int getTrafficType() {
