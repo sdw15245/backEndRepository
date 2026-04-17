@@ -15,15 +15,24 @@ public class FcmTokenService {
 
     private final FcmTokenRepository fcmTokenRepository;
 
-    // 토큰 저장 (이미 있으면 무시)
+    // 토큰 저장 (이미 있으면 시간만 갱신)
     public void saveToken(Long memberId, String token) {
-        if (fcmTokenRepository.findByToken(token).isPresent()) {
-            return;
-        }
-        fcmTokenRepository.save(FcmToken.builder()
-                .memberId(memberId)
-                .token(token)
-                .build());
+        fcmTokenRepository.findByToken(token)
+                .ifPresentOrElse(
+                        existingToken -> existingToken.updateTimestamp(),
+                        () -> fcmTokenRepository.save(FcmToken.builder()
+                                .memberId(memberId)
+                                .token(token)
+                                .build())
+                );
+
+//        if (fcmTokenRepository.findByToken(token).isPresent()) {
+//            return;
+//        }
+//        fcmTokenRepository.save(FcmToken.builder()
+//                .memberId(memberId)
+//                .token(token)
+//                .build());
     }
 
     // 토큰 삭제 (로그아웃 시)

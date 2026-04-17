@@ -46,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             "/v3/api-docs",      // /v3 → /v3/api-docs 로 더 명확하게
             "/v3/api-docs.yaml",
             "/swagger-ui",
-            "/swagger-resources"
+            "/swagger-resources",
     };
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
