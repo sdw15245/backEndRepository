@@ -6,6 +6,7 @@ import com.sweep.project.member.domain.Member;
 import com.sweep.project.member.repository.MemberRepositoryAdvance;
 import com.sweep.project.redis.RedisUserInfoService;
 import com.sweep.project.security.domain.CustomUserDetail;
+import com.sweep.project.util.ApiResponseUtil;
 import com.sweep.project.util.jwt.JwtUtility;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -120,6 +121,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         response.setStatus(httpStatus.value());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(String.format("{\"message\":\"%s\"}", message));
+        objectMapper.writeValue(response.getWriter(), ApiResponseUtil.FailApiResponse(message));
     }
 }
