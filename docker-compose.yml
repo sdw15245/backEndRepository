@@ -19,7 +19,7 @@ services:
       ODSAY: ${ODSAY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       RABBIT_PASSWORD: ${RABBIT_PASSWORD}
-      
+      FIREBASE_TOKEN_PATH: ${FIREBASE_TOKEN_PATH}      
     networks:
       - sweepMap-network
     restart: always
