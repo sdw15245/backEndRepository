@@ -74,7 +74,7 @@ spring:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
-    enabled: false
+    enabled: true
 
 
 jwt:
