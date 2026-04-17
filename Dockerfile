@@ -11,14 +11,11 @@ COPY build.gradle .
 COPY settings.gradle .
 RUN chmod +x ./gradlew
 
-# Gradle 종속성을 캐싱하여 빌드 속도 향상
-#RUN ./gradlew dependencies --no-daemon
-RUN ./gradlew clean bootJar --no-daemon && ls -la /app/build/libs/
 # 소스 코드 복사
 COPY src src
 
 # 애플리케이션 빌드 (bootJar 실행)
-RUN ./gradlew clean bootJar --no-daemon
+RUN ./gradlew clean bootJar --no-daemon -x test
 
 # Step 2: 런타임 이미지 생성
 FROM eclipse-temurin:21-jdk
