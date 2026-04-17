@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile # 빌드에 사용할 Dockerfile
     ports:
       - "8080:8080" # 호스트와 컨테이너의 포트 매핑
+    volumes:
+      - ${FIREBASE_TOKEN_SEVER_PATH}:${FIREBASE_TOKEN_PATH}:ro 
     enviroment:
       KOREA_DATA_PORTAL: ${KOREA_DATA_PORTAL}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
@@ -15,7 +17,7 @@ services:
       DATA_BASE_URL: ${DATA_BASE_URL}
       DATA_BASE_USERNAME: ${DATA_BASE_USERNAME}
       DATA_BASE_PASSWORD: ${DATA_BASE_PASSWORD}
-      REDIS_PASSWORD: ${REDIS_PASSOWRD}}
+      REDIS_PASSWORD: ${REDIS_PASSOWRD}
       ODSAY: ${ODSAY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       RABBIT_PASSWORD: ${RABBIT_PASSWORD}
