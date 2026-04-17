@@ -27,7 +27,7 @@ FROM eclipse-temurin:21-jdk
 WORKDIR /sweepMap
 
 # 빌드 단계에서 생성된 JAR 파일 복사
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
 
 # 애플리케이션이 사용할 포트 노출
 EXPOSE 8080
