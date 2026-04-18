@@ -3,7 +3,7 @@ spring:
     name: project
   data:
     redis:
-      host: localhost
+      host: redis
       port: 6379
       password: ${REDIS_PASSWORD}         # 비밀번호 없으면 빈 값 유지
   datasource:
@@ -67,7 +67,7 @@ spring:
             user-info-authentication-method: header
             user-name-attribute: id # Kakao 응답 값 id, connected_at, properties, kakao_accou
   rabbitmq:
-    host: localhost
+    host: rabbitmq
     password: ${RABBIT_PASSWORD}
     port: 5672
     username: guest
