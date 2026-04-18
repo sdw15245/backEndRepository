@@ -60,12 +60,12 @@ public class SecurityConfig {
 
         security.logout(logout->logout.logoutUrl("/member/logout")
                 .invalidateHttpSession(true)
-                .logoutSuccessHandler(new CustomLogOutHandler(jwtUtility,redisUserInfoService)));
+                .logoutSuccessHandler(new CustomLogOutHandler(jwtUtility,redisUserInfoService,objectMapper)));
 
         security.oauth2Login(oauth2->oauth2.userInfoEndpoint(userinfo->userinfo.userService(
                         new CustomOAuth2Service(memberRepository)))
                 .successHandler(new CustomOAuth2LoginSuccessHandler(jwtUtility,redisUserInfoService,objectMapper))
-                .failureHandler(new CustomOAuth2LoginFailer())
+                .failureHandler(new CustomOAuth2LoginFailer(objectMapper))
         );
 
         security.authorizeHttpRequests(auth ->

@@ -2,6 +2,7 @@ package com.sweep.project.route.mixed;
 
 import com.sweep.project.route.bus.BusBoardingInfo;
 import com.sweep.project.route.subway.SubwayBoardingInfo;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -15,60 +16,48 @@ import java.util.List;
  */
 @Data
 @AllArgsConstructor
+@Schema(description = "복합 경로의 단일 교통 수단 구간 탑승 정보")
 public class SegmentBoardingInfo {
 
-    /**
-     * 교통 수단 유형.
-     * 1: 지하철, 2: 버스
-     */
+    @Schema(description = "교통 수단 유형. 1: 지하철, 2: 버스", example = "1")
     private int trafficType;
 
-    /** 탑승 역 또는 정류장 이름 */
+    @Schema(description = "탑승 역 또는 정류장 이름", example = "강남역")
     private String stopOrStation;
 
-    /** 버스 번호 또는 지하철 노선명 */
+    @Schema(description = "버스 번호 또는 지하철 노선명", example = "2호선")
     private String transportId;
 
-    /** 각 지역 버스노선 ID (BIS 제공지역 버스 구간인 경우에만 존재) */
+    @Schema(description = "각 지역 버스노선 ID (BIS 제공 지역 버스 구간에만 존재)", example = "100100118")
     private String localBusId;
-    /** 버스노선 BIS 코드 */
+
+    @Schema(description = "버스노선 BIS 제공 기관 코드. 2: 경기도, 4: 서울", example = "4")
     private int busProviderCode;
 
-    /** 각 지역 정류장 ID (BIS 제공지역 버스 구간인 경우에만 존재) */
+    @Schema(description = "각 지역 정류장 ID (BIS 제공 지역 버스 구간에만 존재)", example = "100000080")
     private String localStationId;
-    /** 정류장 BIS 코드 */
+
+    @Schema(description = "정류장 BIS 제공 기관 코드. 2: 경기도, 4: 서울", example = "4")
     private int stationProviderCode;
-    /** 탑승 정류소의 노선 내 순번 (버스 도착 API ord 파라미터) */
+
+    @Schema(description = "탑승 정류소의 노선 내 순번 (버스 도착 API ord 파라미터)", example = "5")
     private int startStopOrder;
 
-    /**
-     * 환승 지점 여부.
-     * false = 첫 번째 탑승, true = 환승 지점
-     */
+    @Schema(description = "환승 지점 여부. false: 최초 탑승, true: 환승 지점", example = "false")
     private boolean transferPoint;
 
-    /**
-     * 이 지점에서 늦어도 이 시각에 탑승해야 목적지 도착 시각을 맞출 수 있음.
-     */
+    @Schema(description = "이 지점에서 늦어도 이 시각에 탑승해야 목적지 도착 시각을 맞출 수 있음", example = "08:45:00")
     private LocalTime latestBoardingTime;
 
-    /** 지하철 구간인 경우 이용 가능한 열차 목록 (최대 3편성) */
+    @Schema(description = "지하철 구간인 경우 이용 가능한 열차 목록 (최대 3편성). 버스 구간이면 null")
     private List<SubwayBoardingInfo.TrainSchedule> availableTrains;
 
-    /** 버스 구간인 경우 곧 도착하는 버스 목록 (최대 2대) */
+    @Schema(description = "버스 구간인 경우 탑승 정류소에 곧 도착하는 버스 목록 (최대 2대). 지하철 구간이면 null")
     private List<BusBoardingInfo.ArrivingBus> arrivingBuses;
 
-    /**
-     * 환승 지점에서 환승 열차가 이 역에 도착하는 시각.
-     * subwayPathSchedule API의 startArriveTime 기반.
-     * 첫 탑승 구간이거나 버스 구간인 경우 null.
-     */
+    @Schema(description = "환승 열차가 이 역에 도착하는 시각. 첫 탑승 구간이거나 버스 구간이면 null", example = "08:48:00")
     private LocalTime trainArrivalTime;
 
-    /**
-     * 환승 도보 이동 소요 시간 (분).
-     * 이전 구간 하차 후 이 구간 탑승역까지 걸어가는 시간.
-     * 첫 탑승 구간이거나 도보 환승이 없는 경우 0.
-     */
+    @Schema(description = "환승 도보 이동 소요 시간 (분). 첫 탑승 구간이거나 도보 환승 없으면 0", example = "3")
     private int transferWalkMinutes;
 }

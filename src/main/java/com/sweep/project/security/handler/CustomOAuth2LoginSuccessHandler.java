@@ -3,6 +3,7 @@ package com.sweep.project.security.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sweep.project.redis.RedisUserInfoService;
 import com.sweep.project.security.domain.CustomOAuth2User;
+import com.sweep.project.util.ApiResponseUtil;
 import com.sweep.project.util.jwt.JwtUtility;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,6 +52,6 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
         response.setStatus(httpStatus.value());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(String.format("{\"message\":\"%s\"}", message));
+        objectMapper.writeValue(response.getWriter(), ApiResponseUtil.FailApiResponse(message));
     }
 }
