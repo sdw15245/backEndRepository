@@ -33,6 +33,6 @@ public class AlarmBatchDto {
      */
     private String day;
 
-    /** Route.routeData (ODsay JSON) — null 이면 소요시간 파싱 불가로 스킵 */
-    private String routeData;
+    /** Route.totalTime (분) — null 이면 소요시간 불명으로 스킵 */
+    private Integer totalTime;
 }

@@ -7,6 +7,7 @@ import com.google.firebase.messaging.Notification;
 import com.sweep.project.alarm.batch.AlarmMessageDto;
 import com.sweep.project.fcm.service.FcmSendService;
 import com.sweep.project.fcm.service.FcmTokenService;
+import com.sweep.project.redis.RedisMessageDto;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.api.ChannelAwareBatchMessageListener;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.interceptor.RetryInterceptorBuilder;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
@@ -28,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@org.springframework.context.annotation.Configuration
+@Configuration
 @Slf4j
 @RequiredArgsConstructor
 public class RabbitMqManager {
@@ -39,13 +41,14 @@ public class RabbitMqManager {
     private final static String alarmExchangeName="alarmExchange";
     private final RabbitAdmin rabbitAdmin;
     private final ObjectMapper objectMapper;
+    private final RetryOperationsInterceptor batchRetryOperationsInterceptor;
     private final FcmSendService fcmSendService;
     private final ConcurrentHashMap<String, SimpleMessageListenerContainer> map
             =new ConcurrentHashMap<>();
 
     @PostConstruct
     public void setting(){
-        createBasicSetting();
+        //createBasicSetting();
         alarmSetting();
     }
     public void alarmSetting(){
@@ -54,9 +57,56 @@ public class RabbitMqManager {
                 .to(createAlarmExchange())
                 .with(alarmQueueName);
         rabbitAdmin.declareBinding(binding);
+        rabbitAdmin.declareBinding(binding);
+        ChannelAwareBatchMessageListener messageListener= (ChannelAwareBatchMessageListener) (messages, channel)
+                -> {
+            try {
+                List<Message> messages1 = new ArrayList<>();
+                messages.stream().forEach(x -> {
+                    try {
+                        com.sweep.project.redis.RedisMessageDto redisMessageDto= objectMapper.readValue(x.getBody(), RedisMessageDto.class);
+                        Message message = Message.builder()
+                                .setToken(redisMessageDto.getToken())
+                                .setNotification(Notification.builder()
+                                        .setTitle("테스팅")
+                                        .setBody("테스팅")
+                                        /*
+                                        * 나중에 알람타입에 따라서 보내는 알람도 변경--> fix의경우 notification이아닌 다른 형태의 알람으로
+                                        * */
+                                        .build())
+                                .build();
+                        messages1.add(message);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                fcmSendService.bulkPush(messages1);
+            }
+            catch (Exception e){
+                throw new RuntimeException(e.getMessage());
+            }
+        };
+
+        SimpleMessageListenerContainer container=
+                new SimpleMessageListenerContainer(connectionFactory);
+        container.setMessageListener(messageListener);
+        container.addQueueNames(alarmQueueName);
+        container.setPrefetchCount(30);
+        container.setAcknowledgeMode(AcknowledgeMode.AUTO);
+        container.setAdviceChain(batchRetryOperationsInterceptor);
+        container.setConcurrentConsumers(3);
+        container.setConsumerBatchEnabled(true);
+        container.setReceiveTimeout(2000L);
+        container.setBatchSize(15);
+        container.setRecoveryInterval(30000L);
+        container.start();
+        map.put(alarmQueueName,container);
+
+
+
     }
 
-    public void createBasicSetting(){
+    /*public void createBasicSetting(){
         Queue dlq=createDlq();
         Binding binding=BindingBuilder.bind(dlq)
                 .to(createDlx())
@@ -67,21 +117,7 @@ public class RabbitMqManager {
             try {
                 List<Message> messages1 = new ArrayList<>();
                 messages.stream().forEach(x -> {
-                    try {
-                        AlarmMessageDto alarmMessageDto = objectMapper.readValue(x.getBody(), AlarmMessageDto.class);
-                        alarmMessageDto.getFcmTokens().stream().forEach(y -> {
-                            Message message = Message.builder()
-                                    .setToken(y)
-                                    .setNotification(Notification.builder()
-                                            .setTitle("준비알람")
-                                            .setBody("준비알람")
-                                            .build())
-                                    .build();
-                            messages1.add(message);
-                        });
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                    log.info("메시지가 최종적으로 실패:{}",)
                 });
                 fcmSendService.bulkPush(messages1);
             }
@@ -97,14 +133,14 @@ public class RabbitMqManager {
         container.setPrefetchCount(30);
         container.setAcknowledgeMode(AcknowledgeMode.AUTO);
         container.setAdviceChain(batchRetryOperationsInterceptor());
-        container.setConcurrentConsumers(3);
+        container.setConcurrentConsumers(1);
         container.setConsumerBatchEnabled(true);
         container.setReceiveTimeout(2000L);
         container.setBatchSize(15);
         container.setRecoveryInterval(30000L);
         container.start();
         map.put(dLQName,container);
-    }
+    }*/
     private Queue createAlramQueue(){
         Map<String, Object> args = new HashMap<>();
         args.put("x-dead-letter-exchange", dLXName);           // 기본 exchange 사용
@@ -129,21 +165,5 @@ public class RabbitMqManager {
                 new DirectExchange(dLXName,true,false);
         rabbitAdmin.declareExchange(directExchange);
         return directExchange;
-    }
-
-
-    @Bean
-    public RetryOperationsInterceptor batchRetryOperationsInterceptor(){
-        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
-        backOffPolicy.setInitialInterval(1000);
-        backOffPolicy.setMultiplier(3.0);
-        return RetryInterceptorBuilder.stateless()
-                .retryPolicy(new SimpleRetryPolicy(2))
-                .backOffPolicy(backOffPolicy)
-                .recoverer((message, cause) -> {
-                    log.error("재시도 고갈 - reason:{}", cause.getMessage());
-                    return null;
-                })
-                .build();
     }
 }
