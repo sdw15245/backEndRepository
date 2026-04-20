@@ -6,7 +6,7 @@
     <style>
         body { font-family: sans-serif; max-width: 860px; margin: 40px auto; padding: 0 20px; }
         .form-row { margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
-        label { width: 120px; font-weight: bold; }
+        label { width: 140px; font-weight: bold; flex-shrink: 0; }
         select, input { padding: 6px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
         button { padding: 8px 20px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
         button:hover { background: #2563eb; }
@@ -32,12 +32,8 @@
         hr.section-divider { border: none; border-top: 2px dashed #e2e8f0; margin: 40px 0; }
         .bus-arrival-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
         .bus-arrival-card h3 { margin: 0 0 12px; color: #1e40af; }
-        .congestion-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
-        .cong-0 { background:#e2e8f0; color:#475569; }
-        .cong-3 { background:#dcfce7; color:#166534; }
-        .cong-4 { background:#fef9c3; color:#854d0e; }
-        .cong-5 { background:#fee2e2; color:#991b1b; }
-        .cong-6 { background:#fca5a5; color:#7f1d1d; }
+        .coord-group { display: flex; gap: 8px; align-items: center; }
+        .coord-group input { width: 160px; }
     </style>
 </head>
 <body>
@@ -53,6 +49,22 @@
     </div>
 
     <div class="form-row">
+        <label>출발지 (위도, 경도)</label>
+        <div class="coord-group">
+            <input type="text" id="startLat" placeholder="위도 (예: 37.613)" value="37.6134436427887" />
+            <input type="text" id="startLon" placeholder="경도 (예: 126.926)" value="126.926493082645" />
+        </div>
+    </div>
+
+    <div class="form-row">
+        <label>도착지 (위도, 경도)</label>
+        <div class="coord-group">
+            <input type="text" id="endLat" placeholder="위도 (예: 37.500)" value="37.5004198786564" />
+            <input type="text" id="endLon" placeholder="경도 (예: 127.126)" value="127.126936754911" />
+        </div>
+    </div>
+
+    <div class="form-row">
         <label for="arrivalTime">도착 희망 시각</label>
         <input type="datetime-local" id="arrivalTime" />
     </div>
@@ -65,41 +77,42 @@
 
     <hr class="section-divider">
 
-    <h2>버스 도착 정보 JSON 조회 <span style="font-size:14px;color:#64748b;font-weight:normal;">(GET /route/bus/arrival)</span></h2>
+    <h2>버스 도착 정보 조회 <span style="font-size:14px;color:#64748b;font-weight:normal;">(GET /route/bus/arrival)</span></h2>
 
     <div class="form-row">
-        <label for="stId">stId</label>
-        <input type="text" id="stId" placeholder="정류소 ID (예: 100000065)" style="width:220px;" />
+        <label for="stId">stId / stationId</label>
+        <input type="text" id="stId" placeholder="정류소 ID (예: 124000414)" style="width:220px;" />
     </div>
     <div class="form-row">
         <label for="busRouteId">busRouteId</label>
-        <input type="text" id="busRouteId" placeholder="노선 ID (예: 100100118)" style="width:220px;" />
+        <input type="text" id="busRouteId" placeholder="노선 ID (예: 100100578)" style="width:220px;" />
     </div>
     <div class="form-row">
-        <label for="ord">ord</label>
-        <input type="number" id="ord" placeholder="정류소 순번 (예: 10)" value="0" style="width:100px;" />
+        <label for="ord">ord / staOrder</label>
+        <input type="number" id="ord" placeholder="정류소 순번 (예: 29)" value="0" style="width:100px;" />
     </div>
     <div class="form-row">
-        <button id="busArrivalBtn" onclick="fetchBusArrivalJson()">조회</button>
+        <label for="providerCode">providerCode</label>
+        <select id="providerCode">
+            <option value="4">4 - 서울 BIS</option>
+            <option value="2">2 - 경기 BIS</option>
+        </select>
+    </div>
+    <div class="form-row">
+        <button id="busArrivalBtn" onclick="fetchBusArrival()">조회</button>
     </div>
 
     <div id="busArrivalResult"></div>
 
     <script th:inline="javascript">
         /*<![CDATA[*/
-        const ODSAY_KEY     = /*[[${odsayKey}]]*/ '';
-        const BUS_API_KEY   = /*[[${seoulBusApiKey}]]*/ '';
-
-        const START_X = '126.926493082645';
-        const START_Y = '37.6134436427887';
-        const END_X   = '127.126936754911';
-        const END_Y   = '37.5004198786564';
+        const ODSAY_KEY   = /*[[${odsayKey}]]*/ '';
 
         const ODSAY_ROUTE_URL         = 'https://api.odsay.com/v1/api/searchPubTransPathT';
-        const ODSAY_SCHEDULE_URL      = 'https://api.odsay.com/v1/api/searchSubwaySchedule';      // 역별 시간표 (복합 경로용)
-        const ODSAY_PATH_SCHEDULE_URL = 'https://api.odsay.com/v1/api/subwayPathSchedule';        // 경로 시간표 (지하철 전용)
-        const BUS_ARRIVAL_URL         = '/route/bus/arrival'; // 백엔드 프록시 (공공데이터포털)
-        const BOARDING_URL            = '/route/boarding';    // 복합 경로 탑승 정보 (백엔드 전담)
+        const ODSAY_SCHEDULE_URL      = 'https://api.odsay.com/v1/api/searchSubwaySchedule';
+        const ODSAY_PATH_SCHEDULE_URL = 'https://api.odsay.com/v1/api/subwayPathSchedule';
+        const BUS_ARRIVAL_URL         = '/route/bus/arrival';
+        const BOARDING_URL            = '/route/boarding';
 
         const TYPE_SUBWAY = 1;
         const TYPE_BUS    = 2;
@@ -111,6 +124,15 @@
             document.getElementById('arrivalTime').value = now.toISOString().slice(0, 16);
         })();
 
+        function getCoords() {
+            return {
+                startLat: document.getElementById('startLat').value.trim(),
+                startLon: document.getElementById('startLon').value.trim(),
+                endLat:   document.getElementById('endLat').value.trim(),
+                endLon:   document.getElementById('endLon').value.trim()
+            };
+        }
+
         // ── 시각 계산 유틸 ────────────────────────────────────────────
         function subtractMinutes(datetimeLocalStr, minutes) {
             const d = new Date(datetimeLocalStr);
@@ -118,13 +140,7 @@
             return d;
         }
 
-        function toHHMMSS(date) {
-            return date.toTimeString().slice(0, 8);
-        }
-
-        function toHHMM(date) {
-            return date.toTimeString().slice(0, 5);
-        }
+        function toHHMM(date) { return date.toTimeString().slice(0, 5); }
 
         function parseTimeToDate(hhmmss) {
             const today = new Date();
@@ -133,15 +149,17 @@
             return today;
         }
 
-        // ── ODsay 경로 검색 (지하철/버스 전용) ───────────────────────
+        // ── ODsay 경로 검색 ───────────────────────────────────────────
         async function callRouteApi(pathType) {
-            const url = `${ODSAY_ROUTE_URL}?lang=0&apiKey=${ODSAY_KEY}&SX=${START_X}&SY=${START_Y}&EX=${END_X}&EY=${END_Y}&SearchPathType=${pathType}&output=json`;
+            const { startLat, startLon, endLat, endLon } = getCoords();
+            // ODsay: SX/EX = 경도(longitude), SY/EY = 위도(latitude)
+            const url = `${ODSAY_ROUTE_URL}?lang=0&apiKey=${ODSAY_KEY}&SX=${startLon}&SY=${startLat}&EX=${endLon}&EY=${endLat}&SearchPathType=${pathType}&output=json`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`ODsay 경로 API 오류: ${res.status}`);
             return res.json();
         }
 
-        // ── 지하철 역별 시간표 조회 (복합 경로용 – searchSubwaySchedule) ─
+        // ── 지하철 역별 시간표 (복합 경로용) ─────────────────────────
         async function callSubwaySchedule(stationID, wayCode) {
             const url = `${ODSAY_SCHEDULE_URL}?apiKey=${ODSAY_KEY}&stationID=${stationID}&wayCode=${wayCode}`;
             const res = await fetch(url);
@@ -149,8 +167,7 @@
             return res.json();
         }
 
-        // ── 지하철 경로 시간표 조회 (지하철 전용 – subwayPathSchedule) ─
-        // MODE=2: 도착 시각 기준, DAY: 1=평일 2=토요일 3=일요일, TIME: HHmm
+        // ── 지하철 경로 시간표 (지하철 전용) ─────────────────────────
         async function callSubwayPathSchedule(sid, eid, dayCode, timeHHmm) {
             const url = `${ODSAY_PATH_SCHEDULE_URL}?apiKey=${ODSAY_KEY}&lang=0&SID=${sid}&EID=${eid}&MODE=2&DAY=${dayCode}&TIME=${timeHHmm}`;
             const res = await fetch(url);
@@ -158,15 +175,34 @@
             return res.json();
         }
 
-        // ── 버스 도착 정보 조회 (백엔드 프록시 – 공공데이터포털) ─────
-        async function callBusArrival(stId, busRouteId, ord) {
-            const url = `${BUS_ARRIVAL_URL}?stId=${stId}&busRouteId=${busRouteId}&ord=${ord}`;
+        // ── 버스 도착 정보 (백엔드 프록시) ───────────────────────────
+        // providerCode: 4=서울 BIS(XML), 2=경기 BIS(JSON)
+        // ord=0이면 백엔드에서 자동으로 정류소 순번을 조회한다
+        async function callBusArrival(stId, busRouteId, ord, providerCode) {
+            const pc = providerCode || 4;
+            const url = `${BUS_ARRIVAL_URL}?stId=${encodeURIComponent(stId)}&busRouteId=${encodeURIComponent(busRouteId)}&ord=${ord || 0}&providerCode=${pc}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`버스 도착 API 오류: ${res.status}`);
             return res.json();
         }
 
-        // ── 복합 경로 파싱 (ODsay pathType=3) ───────────────────────
+        // BusArrivalInfo → 내부 버스 목록 형식으로 변환
+        function parseBusArrivalInfo(data) {
+            if (!data || !data.arrmsg1) return [];
+            const result = [];
+            function isValid(msg) {
+                return msg && msg.trim() && !msg.includes('운행종료') && !msg.includes('출발대기') && !msg.includes('운행 정보 없음');
+            }
+            if (isValid(data.arrmsg1)) {
+                result.push({ arrMsg: data.arrmsg1, remainSec: data.traTime1 || 0 });
+            }
+            if (isValid(data.arrmsg2)) {
+                result.push({ arrMsg: data.arrmsg2, remainSec: data.traTime2 || 0 });
+            }
+            return result;
+        }
+
+        // ── 복합 경로 파싱 ────────────────────────────────────────────
         function parseMixedRoute(path) {
             const info = path.info;
             const segments = [];
@@ -174,60 +210,42 @@
                 if (sub.trafficType === TYPE_WALK) {
                     segments.push({ type: 'walk', distance: sub.distance, sectionTime: sub.sectionTime });
                 } else if (sub.trafficType === TYPE_SUBWAY && sub.lane) {
-                    // 첫 번째 lane만 사용
                     const lane = sub.lane[0];
                     segments.push({
-                        type:         'subway',
-                        lineName:     lane.name,
-                        subwayCode:   lane.subwayCode,
-                        startStation: sub.startName,
-                        endStation:   sub.endName,
-                        stationCount: sub.stationCount,
-                        sectionTime:  sub.sectionTime,
-                        distance:     sub.distance,
-                        startID:      sub.startID,
-                        wayCode:      sub.wayCode
+                        type: 'subway', lineName: lane.name, subwayCode: lane.subwayCode,
+                        startStation: sub.startName, endStation: sub.endName,
+                        stationCount: sub.stationCount, sectionTime: sub.sectionTime,
+                        distance: sub.distance, startID: sub.startID, wayCode: sub.wayCode
                     });
                 } else if (sub.trafficType === TYPE_BUS && sub.lane) {
                     const lane = sub.lane[0];
                     segments.push({
-                        type:              'bus',
-                        busNo:             lane.busNo,
-                        startStop:         sub.startName,
-                        endStop:           sub.endName,
-                        stationCount:      sub.stationCount,
-                        sectionTime:       sub.sectionTime,
-                        distance:          sub.distance,
+                        type: 'bus', busNo: lane.busNo, startStop: sub.startName, endStop: sub.endName,
+                        stationCount: sub.stationCount, sectionTime: sub.sectionTime, distance: sub.distance,
                         localBusStationId: sub.startLocalStationID,
-                        localBusId:        lane.busLocalBlID,
-                        startStopOrder:    sub.startExNo ?? 0
+                        stationProviderCode: sub.startStationProviderCode || 4,
+                        localBusId: lane.busLocalBlID,
+                        busProviderCode: lane.busProviderCode || 4,
+                        startStopOrder: sub.startExNo ?? 0
                     });
                 }
             }
             return {
-                totalTime:         info.totalTime,
-                payment:           info.payment,
-                transferCount:      Math.max(0, (info.busTransitCount || 0) + (info.subwayTransitCount || 0) - 1),
-                busTransitCount:    info.busTransitCount,
-                subwayTransitCount: info.subwayTransitCount,
-                totalWalk:         info.totalWalk,
-                segments
+                totalTime: info.totalTime, payment: info.payment,
+                transferCount: Math.max(0, (info.busTransitCount || 0) + (info.subwayTransitCount || 0) - 1),
+                busTransitCount: info.busTransitCount, subwayTransitCount: info.subwayTransitCount,
+                totalWalk: info.totalWalk, segments
             };
         }
 
-        // ── 복합 경로 전 구간 탑승 정보 계산 ─────────────────────────
-        // 지하철: ODsay schedule API (프론트 직접 호출)
-        // 버스:   /route/bus/arrival 백엔드 프록시 (공공데이터포털)
+        // ── 복합 경로 탑승 정보 계산 ─────────────────────────────────
         async function getMixedBoardingInfo(route, arrivalDatetime) {
             const segmentInfos = [];
             let elapsedTime = 0;
             let firstTransitFound = false;
 
             for (const seg of route.segments) {
-                if (seg.type === 'walk') {
-                    elapsedTime += seg.sectionTime;
-                    continue;
-                }
+                if (seg.type === 'walk') { elapsedTime += seg.sectionTime; continue; }
 
                 const isTransfer = firstTransitFound;
                 firstTransitFound = true;
@@ -237,35 +255,24 @@
 
                 if (seg.type === 'subway') {
                     const scheduleData = await callSubwaySchedule(seg.startID, seg.wayCode);
-                    const availableTrains = filterSubwayTrains(
-                        scheduleData, arrivalDatetime, seg.wayCode, latestBoardingDate, isTransfer);
-
+                    const availableTrains = filterSubwayTrains(scheduleData, arrivalDatetime, seg.wayCode, latestBoardingDate, isTransfer);
                     segmentInfos.push({
-                        type:       'subway',
-                        isTransfer,
-                        stopOrStation: seg.startStation,
-                        transportId:   seg.lineName,
-                        pivotTime:     toHHMM(latestBoardingDate),
-                        availableTrains
+                        type: 'subway', isTransfer,
+                        stopOrStation: seg.startStation, transportId: seg.lineName,
+                        pivotTime: toHHMM(latestBoardingDate), availableTrains
                     });
                 } else if (seg.type === 'bus') {
                     const arrivalData = await callBusArrival(
-                        seg.localBusStationId, seg.localBusId, seg.startStopOrder);
-                    const arrivingBuses = parseBusArrival(arrivalData);
-
+                        seg.localBusStationId, seg.localBusId, seg.startStopOrder, seg.busProviderCode);
+                    const arrivingBuses = parseBusArrivalInfo(arrivalData);
                     segmentInfos.push({
-                        type:          'bus',
-                        isTransfer,
-                        stopOrStation: seg.startStop,
-                        transportId:   seg.busNo,
-                        pivotTime:     toHHMM(latestBoardingDate),
-                        arrivingBuses
+                        type: 'bus', isTransfer,
+                        stopOrStation: seg.startStop, transportId: seg.busNo,
+                        pivotTime: toHHMM(latestBoardingDate), arrivingBuses
                     });
                 }
-
                 elapsedTime += seg.sectionTime;
             }
-
             return segmentInfos;
         }
 
@@ -279,22 +286,16 @@
                 } else if (sub.trafficType === TYPE_SUBWAY && sub.lane) {
                     for (const lane of sub.lane) {
                         segments.push({
-                            type:         'subway',
-                            lineName:     lane.name,
-                            subwayCode:   lane.subwayCode,
-                            startStation: sub.startName,
-                            endStation:   sub.endName,
-                            stationCount: sub.stationCount,
-                            sectionTime:  sub.sectionTime,
-                            distance:     sub.distance,
-                            startID:      sub.startID,
-                            endID:        sub.endID,   // 마지막 지하철 구간 endID → EID로 사용
-                            wayCode:      sub.wayCode
+                            type: 'subway', lineName: lane.name, subwayCode: lane.subwayCode,
+                            startStation: sub.startName, endStation: sub.endName,
+                            stationCount: sub.stationCount, sectionTime: sub.sectionTime,
+                            distance: sub.distance, startID: sub.startID, endID: sub.endID, wayCode: sub.wayCode
                         });
                     }
                 }
             }
-            return { totalTime: info.totalTime, payment: info.payment, transferCount: Math.max(0, (info.busTransitCount || 0) + (info.subwayTransitCount || 0) - 1), segments };
+            return { totalTime: info.totalTime, payment: info.payment,
+                transferCount: Math.max(0, (info.busTransitCount || 0) + (info.subwayTransitCount || 0) - 1), segments };
         }
 
         // ── 버스 경로 파싱 ────────────────────────────────────────────
@@ -307,106 +308,81 @@
                 } else if (sub.trafficType === TYPE_BUS && sub.lane) {
                     for (const lane of sub.lane) {
                         segments.push({
-                            type:              'bus',
-                            busNo:             lane.busNo,
-                            busType:           lane.type,
-                            startStop:         sub.startName,
-                            endStop:           sub.endName,
-                            stationCount:      sub.stationCount,
-                            sectionTime:       sub.sectionTime,
-                            distance:          sub.distance,
-                            busRouteId:        lane.busID,
-                            startStopId:       sub.startID,
-                            startStopOrder:    sub.startExNo ?? 0,
+                            type: 'bus', busNo: lane.busNo, busType: lane.type,
+                            startStop: sub.startName, endStop: sub.endName,
+                            stationCount: sub.stationCount, sectionTime: sub.sectionTime, distance: sub.distance,
+                            busRouteId: lane.busID,
+                            startStopId: sub.startID,
+                            startStopOrder: 0, // ord는 백엔드 BIS API에서 자동 조회
                             localBusStationId: sub.startLocalStationID,
-                            localBusId:        lane.busLocalBlID
+                            stationProviderCode: sub.startStationProviderCode || 4,
+                            localBusId: lane.busLocalBlID,
+                            busProviderCode: lane.busProviderCode || 4,
+                            _rawSub: {
+                                startExNo: sub.startExNo,
+                                startID: sub.startID,
+                                startLocalStationID: sub.startLocalStationID,
+                                startArsID: sub.startArsID,
+                                startStationProviderCode: sub.startStationProviderCode,
+                                busLocalBlID: lane.busLocalBlID,
+                                busProviderCode: lane.busProviderCode,
+                                busID: lane.busID
+                            }
                         });
                     }
                 }
             }
-            return { totalTime: info.totalTime, payment: info.payment, transferCount: Math.max(0, (info.busTransitCount || 0) + (info.subwayTransitCount || 0) - 1), segments };
+            return { totalTime: info.totalTime, payment: info.payment,
+                transferCount: Math.max(0, (info.busTransitCount || 0) + (info.subwayTransitCount || 0) - 1), segments };
         }
 
-        // ── 지하철 탑승 정보 계산 (subwayPathSchedule API – SID/EID 기반) ──
-        //
-        // 1. 첫 번째 지하철 구간 startID → SID
-        //    마지막 지하철 구간 endID   → EID
-        // 2. subwayPathSchedule(SID, EID, DAY, TIME, MODE=2) 호출
-        // 3. pathType=1 (최단 시간) 경로 선택
-        // 4. 각 subPath에서 추출:
-        //    - subway: startDepartTime → latestBoardingTime (탑승 시각)
-        //              startArriveTime → trainArrivalTime   (환승 열차 도착 시각, 환승 지점만)
-        //    - walk:   sectionTime     → transferWalkMinutes (환승 이동 시간)
+        // ── 지하철 탑승 정보 계산 (subwayPathSchedule) ────────────────
         async function getSubwayBoardingInfo(route, arrivalDatetime) {
             const subwaySegs = route.segments.filter(s => s.type === 'subway');
             if (!subwaySegs.length) throw new Error('지하철 구간이 없습니다.');
 
             const sid = subwaySegs[0].startID;
             const eid = subwaySegs[subwaySegs.length - 1].endID;
-
             const arrDate = new Date(arrivalDatetime);
             const dow = arrDate.getDay();
             const dayCode = dow === 6 ? 2 : dow === 0 ? 3 : 1;
-            const timeHHmm = String(arrDate.getHours()).padStart(2, '0')
-                           + String(arrDate.getMinutes()).padStart(2, '0');
+            const timeHHmm = String(arrDate.getHours()).padStart(2, '0') + String(arrDate.getMinutes()).padStart(2, '0');
 
             const scheduleData = await callSubwayPathSchedule(sid, eid, dayCode, timeHHmm);
-
             const paths = scheduleData?.result?.path;
             if (!paths || !paths.length) {
-                const err = new Error('지하철 경로 시간표 조회에 실패했습니다. (SID=' + sid + ', EID=' + eid + ')');
+                const err = new Error('지하철 경로 시간표 조회 실패 (SID=' + sid + ', EID=' + eid + ')');
                 err.debugData = scheduleData;
                 throw err;
             }
 
-            // pathType=1(최단 시간) 우선, 없으면 첫 번째 경로
             const shortestPath = paths.find(p => p.pathType === 1) || paths[0];
-
-            // 실제 API 응답 기준:
-            //   movingType=1: 지하철, movingType=2: 환승도보
-            //   시각 형식: "HH:mm:ss"
-            //   노선명: subPath.laneName (lane 배열 없음)
             const MOVING_SUBWAY = 1;
-            const MOVING_WALK   = 2;
-
-            // "HH:mm:ss" → "HH:MM" (앞 5자 추출)
             const fmtTime = t => t ? t.slice(0, 5) : null;
 
             const segmentInfos = [];
-            let pendingWalkMinutes   = 0;
-            let pendingPlatformArrival = null; // 환승 플랫폼 도착 시각 (도보 arrivalTime)
-            let firstSubwayFound     = false;
-            let segIdx = 0;
+            let pendingWalkMinutes = 0, pendingPlatformArrival = null;
+            let firstSubwayFound = false, segIdx = 0;
 
             for (const subPath of (shortestPath.subPath || [])) {
-                if (subPath.movingType === MOVING_WALK) {
-                    pendingWalkMinutes    = subPath.sectionTime || 0;
-                    pendingPlatformArrival = fmtTime(subPath.arrivalTime); // 플랫폼 도착 시각
+                if (subPath.movingType === 2) {
+                    pendingWalkMinutes = subPath.sectionTime || 0;
+                    pendingPlatformArrival = fmtTime(subPath.arrivalTime);
                     continue;
                 }
                 if (subPath.movingType !== MOVING_SUBWAY) continue;
 
                 const isTransfer = firstSubwayFound;
                 firstSubwayFound = true;
-
-                const latestBoardingTime = fmtTime(subPath.departureTime); // 열차 출발 시각
-                const trainArrivalTime   = isTransfer ? pendingPlatformArrival : null; // 환승 플랫폼 도착 시각
-
-                const lineName = subPath.laneName
-                    || (segIdx < subwaySegs.length ? subwaySegs[segIdx].lineName : '');
-
                 segmentInfos.push({
                     isTransfer,
-                    startStation:         subPath.startName || '',
-                    lineName,
-                    latestBoardingTime,    // 열차 출발 시각 (늦어도 이 시각에 탑승)
-                    trainArrivalTime,      // 환승 플랫폼 도착 시각 (환승 지점만)
-                    transferWalkMinutes:   pendingWalkMinutes
+                    startStation: subPath.startName || '',
+                    lineName: subPath.laneName || (segIdx < subwaySegs.length ? subwaySegs[segIdx].lineName : ''),
+                    latestBoardingTime: fmtTime(subPath.departureTime),
+                    trainArrivalTime: isTransfer ? pendingPlatformArrival : null,
+                    transferWalkMinutes: pendingWalkMinutes
                 });
-
-                pendingWalkMinutes    = 0;
-                pendingPlatformArrival = null;
-                segIdx++;
+                pendingWalkMinutes = 0; pendingPlatformArrival = null; segIdx++;
             }
 
             if (!segmentInfos.length) {
@@ -417,66 +393,38 @@
 
             const recommendedDepartTime = shortestPath.info?.departureTime
                 ? fmtTime(shortestPath.info.departureTime)
-                : (segmentInfos[0].latestBoardingTime
-                    || toHHMM(subtractMinutes(arrivalDatetime, route.totalTime)));
+                : (segmentInfos[0].latestBoardingTime || toHHMM(subtractMinutes(arrivalDatetime, route.totalTime)));
 
             return { recommendedDepartTime, segmentInfos };
         }
 
-        // filterSubwayTrains: 복합 경로(getMixedBoardingInfo)에서 역별 시간표 필터링에 사용
-        // isTransfer=false → pivotDate 이전 출발 열차 중 마지막 3편
-        // isTransfer=true  → pivotDate(환승역 도착 예정) 이후 출발 열차 중 첫 3편
         function filterSubwayTrains(scheduleData, arrivalDatetime, wayCode, pivotDate, isTransfer) {
             const result = scheduleData && scheduleData.result;
             if (!result) return [];
-
             const dow = new Date(arrivalDatetime).getDay();
-            let weekSchedule;
-            if (dow === 6)      weekSchedule = result.토요일;
-            else if (dow === 0) weekSchedule = result.일요일;
-            else                weekSchedule = result.평일;
-
-            if (!weekSchedule) {
-                if (dow === 6)      weekSchedule = result.saturdaySchedule || result.Saturday;
-                else if (dow === 0) weekSchedule = result.sundaySchedule   || result.Sunday || result.holidaySchedule;
-                else                weekSchedule = result.weekdaySchedule  || result.Weekday;
-            }
+            let weekSchedule = dow === 6 ? (result.토요일 || result.saturdaySchedule)
+                             : dow === 0 ? (result.일요일 || result.sundaySchedule || result.holidaySchedule)
+                             : (result.평일 || result.weekdaySchedule);
             if (!weekSchedule) return [];
-
             const trains = wayCode === 1 ? (weekSchedule.up || weekSchedule.상행 || [])
                                          : (weekSchedule.down || weekSchedule.하행 || []);
             const pivotMs = pivotDate.getTime();
-
-            const mapped = trains
-                .filter(t => t.departureTime)
-                .map(t => ({
-                    departureTime: t.departureTime,
-                    endStation:    t.endStationName,
-                    subwayClass:   t.subwayClass,
-                    firstLastFlag: t.firstLastFlag,
-                    _ms: parseTimeToDate(t.departureTime).getTime()
-                }));
-
+            const mapped = trains.filter(t => t.departureTime).map(t => ({
+                departureTime: t.departureTime, endStation: t.endStationName,
+                subwayClass: t.subwayClass, firstLastFlag: t.firstLastFlag,
+                _ms: parseTimeToDate(t.departureTime).getTime()
+            }));
             if (isTransfer) {
-                return mapped
-                    .filter(t => t._ms >= pivotMs)
-                    .sort((a, b) => a._ms - b._ms)
-                    .slice(0, 3);
+                return mapped.filter(t => t._ms >= pivotMs).sort((a, b) => a._ms - b._ms).slice(0, 3);
             } else {
-                return mapped
-                    .filter(t => t._ms <= pivotMs)
-                    .sort((a, b) => b._ms - a._ms)
-                    .slice(0, 3)
-                    .sort((a, b) => a._ms - b._ms);
+                return mapped.filter(t => t._ms <= pivotMs).sort((a, b) => b._ms - a._ms).slice(0, 3).sort((a, b) => a._ms - b._ms);
             }
         }
 
-        // ── 버스 탑승 정보 계산 (전 구간 – 첫 탑승 + 환승 지점) ────
-        // 공공데이터포털(서울버스 도착) API는 백엔드 프록시 경유
+        // ── 버스 탑승 정보 계산 ───────────────────────────────────────
         async function getBusBoardingInfo(route, arrivalDatetime) {
             const segmentInfos = [];
-            let elapsedTime = 0;
-            let firstFound = false;
+            let elapsedTime = 0, firstFound = false;
 
             for (const seg of route.segments) {
                 if (seg.type === 'walk') { elapsedTime += seg.sectionTime; continue; }
@@ -487,61 +435,51 @@
 
                 const pivotDate   = subtractMinutes(arrivalDatetime, route.totalTime - elapsedTime);
                 const arrivalData = await callBusArrival(
-                    seg.localBusStationId, seg.localBusId, seg.startStopOrder);
-                const arrivingBuses = parseBusArrival(arrivalData);
+                    seg.localBusStationId, seg.localBusId, seg.startStopOrder, seg.busProviderCode);
+                const arrivingBuses = parseBusArrivalInfo(arrivalData);
 
                 segmentInfos.push({
-                    isTransfer,
-                    startStop:  seg.startStop,
-                    busNo:      seg.busNo,
-                    pivotTime:  toHHMM(pivotDate),
-                    arrivingBuses
+                    isTransfer, startStop: seg.startStop, busNo: seg.busNo,
+                    pivotTime: toHHMM(pivotDate), arrivingBuses,
+                    _stationId:    seg.localBusStationId,
+                    _busId:        seg.localBusId,
+                    _ord:          seg.startStopOrder,
+                    _providerCode: seg.busProviderCode,
+                    _rawSub:       seg._rawSub
                 });
-
                 elapsedTime += seg.sectionTime;
             }
 
             if (!segmentInfos.length) throw new Error('버스 구간이 없습니다.');
-
             return {
                 recommendedDepartTime: toHHMM(subtractMinutes(arrivalDatetime, route.totalTime)),
                 segmentInfos
             };
         }
 
-        function parseBusArrival(data) {
-            const itemList = data?.ServiceResult?.msgBody?.itemList
-                          || data?.serviceResult?.msgBody?.itemList
-                          || [];
-            if (!itemList.length) return [];
 
-            const item = itemList[0];
-            const result = [];
-
-            function isValid(msg) {
-                return msg && msg.trim() && !msg.includes('운행종료') && !msg.includes('출발대기');
-            }
-            if (isValid(item.arrmsg1)) {
-                result.push({ plateNo: item.plainNo1, arrMsg: item.arrmsg1,
-                    remainSec: parseInt(item.traTime1) || 0, prevStop: item.prvSttn1,
-                    isLast: item.isLast1 === '1' });
-            }
-            if (isValid(item.arrmsg2)) {
-                result.push({ plateNo: item.plainNo2, arrMsg: item.arrmsg2,
-                    remainSec: parseInt(item.traTime2) || 0, prevStop: item.prvSttn2,
-                    isLast: item.isLast2 === '1' });
-            }
-            return result;
+        // ── 렌더링: 공통 유틸 ─────────────────────────────────────────
+        function formatRemainTime(sec) {
+            if (!sec || sec <= 0) return '-';
+            const m = Math.floor(sec / 60), s = sec % 60;
+            if (m === 0) return `${s}초 후`;
+            if (s === 0) return `${m}분 후`;
+            return `${m}분 ${s}초 후`;
         }
 
-        // ── 결과 렌더링 ───────────────────────────────────────────────
-        // info: { recommendedDepartTime, segmentInfos: [
-        //   { isTransfer, startStation, lineName,
-        //     latestBoardingTime,   ← 탑승 시각 (startDepartTime)
-        //     trainArrivalTime,     ← 환승 열차 도착 시각 (startArriveTime, 환승 지점만)
-        //     transferWalkMinutes   ← 환승 도보 이동 시간
-        //   }
-        // ]}
+        function busItemHtml(bus, idx) {
+            return `
+                <div class="bus-item">
+                    <strong>${idx}번째 버스</strong>
+                    <div class="info-row" style="margin-top:6px;">
+                        <span class="label">도착 예정</span>
+                        <span class="value" style="color:#2563eb;">${formatRemainTime(bus.remainSec)}</span>
+                    </div>
+                    <div class="info-row"><span class="label">도착 메시지</span><span class="value">${bus.arrMsg || '-'}</span></div>
+                </div>`;
+        }
+
+        // ── 렌더링: 지하철 ────────────────────────────────────────────
         function renderSubway(route, info) {
             const summaryCard = `
                 <div class="card">
@@ -552,93 +490,57 @@
                     <div class="info-row"><span class="label">요금</span><span class="value">${route.payment.toLocaleString()}원</span></div>
                 </div>`;
 
-            const segmentsHtml = route.segments.map(seg => {
-                if (seg.type === 'walk') {
-                    return `<div class="segment-item walk">🚶 도보 &nbsp;<strong>${(seg.distance / 1000).toFixed(2)} km</strong>&nbsp;약 <strong>${seg.sectionTime}분</strong></div>`;
-                } else {
-                    return `<div class="segment-item subway-seg">🚇 <strong>${seg.lineName}</strong>&nbsp;${seg.startStation} → ${seg.endStation}&nbsp;(<strong>${seg.stationCount}역</strong>, 약 ${seg.sectionTime}분)</div>`;
-                }
-            }).join('<div class="seg-arrow">↓</div>');
-
-            const routeCard = `<div class="card"><h3>경로 구성</h3>${segmentsHtml}</div>`;
+            const segmentsHtml = route.segments.map(seg =>
+                seg.type === 'walk'
+                    ? `<div class="segment-item walk">🚶 도보 <strong>${(seg.distance / 1000).toFixed(2)} km</strong> 약 <strong>${seg.sectionTime}분</strong></div>`
+                    : `<div class="segment-item subway-seg">🚇 <strong>${seg.lineName}</strong> ${seg.startStation} → ${seg.endStation} (<strong>${seg.stationCount}역</strong>, 약 ${seg.sectionTime}분)</div>`
+            ).join('<div class="seg-arrow">↓</div>');
 
             const segCardsHtml = info.segmentInfos.map(seg => {
-                const headerLabel = seg.isTransfer
-                    ? `환승 탑승 정보 <span class="transfer-badge">환승</span>`
-                    : `첫 번째 탑승 정보`;
-
-                const transferRows = seg.isTransfer ? `
-                    ${seg.transferWalkMinutes ? `
-                        <div class="info-row">
-                            <span class="label">환승 이동 시간</span>
-                            <span class="value">${seg.transferWalkMinutes}분 도보</span>
-                        </div>` : ''}
-                    ${seg.trainArrivalTime ? `
-                        <div class="info-row">
-                            <span class="label">환승 플랫폼 도착</span>
-                            <span class="value" style="color:#16a34a;font-size:15px;">${seg.trainArrivalTime}</span>
-                        </div>` : ''}` : '';
-
+                const headerLabel = seg.isTransfer ? `환승 탑승 정보 <span class="transfer-badge">환승</span>` : `첫 번째 탑승 정보`;
                 return `
                     <div class="card">
                         <h3>🚇 ${headerLabel}</h3>
                         <div class="info-row"><span class="label">탑승역</span><span class="value">${seg.startStation}</span></div>
                         <div class="info-row"><span class="label">노선</span><span class="value">${seg.lineName}</span></div>
-                        ${transferRows}
+                        ${seg.isTransfer && seg.transferWalkMinutes ? `<div class="info-row"><span class="label">환승 이동 시간</span><span class="value">${seg.transferWalkMinutes}분 도보</span></div>` : ''}
+                        ${seg.isTransfer && seg.trainArrivalTime ? `<div class="info-row"><span class="label">환승 플랫폼 도착</span><span class="value" style="color:#16a34a;">${seg.trainArrivalTime}</span></div>` : ''}
                         <div class="info-row">
                             <span class="label">${seg.isTransfer ? '환승 열차 출발' : '탑승 시각'}</span>
                             <span class="value" style="color:#1d4ed8;font-size:15px;font-weight:700;">${seg.latestBoardingTime || '-'}</span>
                         </div>
-                        ${!seg.isTransfer ? `<p style="margin:8px 0 0;font-size:12px;color:#64748b;">늦어도 이 시각까지 탑승역에 도착해야 합니다.</p>` : ''}
                     </div>`;
             }).join('');
 
-            return summaryCard + routeCard + segCardsHtml;
+            return summaryCard + `<div class="card"><h3>경로 구성</h3>${segmentsHtml}</div>` + segCardsHtml;
         }
 
-        function formatRemainTime(sec) {
-            if (!sec || sec <= 0) return '-';
-            const m = Math.floor(sec / 60);
-            const s = sec % 60;
-            if (m === 0) return `${s}초 후`;
-            if (s === 0) return `${m}분 후`;
-            return `${m}분 ${s}초 후`;
-        }
-
+        // ── 렌더링: 버스 ─────────────────────────────────────────────
         function renderBus(route, info) {
-            const segmentsHtml = route.segments.map(seg => {
-                if (seg.type === 'walk') {
-                    return `<div class="segment-item walk">🚶 도보 &nbsp;<strong>${(seg.distance / 1000).toFixed(2)} km</strong>&nbsp;약 <strong>${seg.sectionTime}분</strong></div>`;
-                } else {
-                    return `<div class="segment-item bus-seg">🚌 <strong>${seg.busNo}번</strong>&nbsp;${seg.startStop} → ${seg.endStop}&nbsp;(<strong>${seg.stationCount}정거장</strong>, 약 ${seg.sectionTime}분)</div>`;
-                }
-            }).join('<div class="seg-arrow">↓</div>');
+            const segmentsHtml = route.segments.map(seg =>
+                seg.type === 'walk'
+                    ? `<div class="segment-item walk">🚶 도보 <strong>${(seg.distance / 1000).toFixed(2)} km</strong> 약 <strong>${seg.sectionTime}분</strong></div>`
+                    : `<div class="segment-item bus-seg">🚌 <strong>${seg.busNo}번</strong> ${seg.startStop} → ${seg.endStop} (<strong>${seg.stationCount}정거장</strong>, 약 ${seg.sectionTime}분)</div>`
+            ).join('<div class="seg-arrow">↓</div>');
 
             const boardingCardsHtml = info.segmentInfos.map(seg => {
-                const headerLabel = seg.isTransfer
-                    ? `환승 탑승 정보 <span class="transfer-badge">환승</span>`
-                    : `첫 번째 탑승 정보`;
+                const headerLabel = seg.isTransfer ? `환승 탑승 정보 <span class="transfer-badge">환승</span>` : `첫 번째 탑승 정보`;
                 const buses = seg.arrivingBuses || [];
                 const busesHtml = buses.length
-                    ? buses.map((b, i) => `
-                        <div class="bus-item">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                                <strong style="font-size:14px;">${i + 1}번째 버스 &nbsp;${b.plateNo ? `<span style="color:#64748b;font-weight:normal;">(${b.plateNo})</span>` : ''}</strong>
-                                ${b.isLast ? '<span style="color:#dc2626;font-size:12px;font-weight:bold;">[막차]</span>' : ''}
-                            </div>
-                            <div class="info-row"><span class="label">도착 예정시간</span><span class="value" style="color:#2563eb;">${formatRemainTime(b.remainSec)}</span></div>
-                            <div class="info-row"><span class="label">현재 위치 정류소</span><span class="value">${b.prevStop || '-'}</span></div>
-                            <div class="info-row" style="color:#64748b;font-size:12px;"><span class="label">상세</span><span>${b.arrMsg || '-'}</span></div>
-                        </div>`).join('')
+                    ? buses.map((b, i) => busItemHtml(b, i + 1)).join('')
                     : '<p style="color:#64748b;font-size:13px;">도착 예정 버스 정보가 없습니다.</p>';
-
                 return `
                     <div class="card">
                         <h3>🚌 ${headerLabel}</h3>
                         <div class="info-row"><span class="label">탑승 정류장</span><span class="value">${seg.startStop}</span></div>
                         <div class="info-row"><span class="label">버스 번호</span><span class="value">${seg.busNo}번</span></div>
+                        <div class="info-row"><span class="label">정류소 순번(ord)</span><span class="value" style="color:#64748b;">${seg._ord ?? '-'}</span></div>
+                        <details style="margin:6px 0 0;font-size:12px;">
+                            <summary style="cursor:pointer;color:#64748b;">ODsay 파싱 원본 보기</summary>
+                            <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:8px;margin-top:4px;overflow-x:auto;">${JSON.stringify(seg._rawSub, null, 2)}</pre>
+                        </details>
                         <div class="info-row">
-                            <span class="label">${seg.isTransfer ? '환승 정류장 도착 예정' : '최대 탑승 시각'}</span>
+                            <span class="label">${seg.isTransfer ? '환승 도착 예정' : '최대 탑승 시각'}</span>
                             <span class="value">${seg.pivotTime}</span>
                         </div>
                         <div style="margin-top:10px;"><strong style="font-size:13px;">도착 예정 버스</strong></div>
@@ -658,75 +560,49 @@
                 ${boardingCardsHtml}`;
         }
 
-        // ── 복합 경로 렌더링 ──────────────────────────────────────────
-        // route: parseMixedRoute() 결과, segmentInfos: getMixedBoardingInfo() 결과
+        // ── 렌더링: 복합 경로 ─────────────────────────────────────────
         function renderMixed(route, segmentInfos, arrivalDatetime) {
             const recommendedDepart = toHHMM(subtractMinutes(arrivalDatetime, route.totalTime));
 
             const segmentsHtml = route.segments.map(seg => {
-                if (seg.type === 'walk') {
-                    return `<div class="segment-item walk">🚶 도보 &nbsp;<strong>${(seg.distance / 1000).toFixed(2)} km</strong>&nbsp;약 <strong>${seg.sectionTime}분</strong></div>`;
-                } else if (seg.type === 'subway') {
-                    return `<div class="segment-item subway-seg">🚇 <strong>${seg.lineName}</strong>&nbsp;${seg.startStation} → ${seg.endStation}&nbsp;(<strong>${seg.stationCount}역</strong>, 약 ${seg.sectionTime}분)</div>`;
-                } else if (seg.type === 'bus') {
-                    return `<div class="segment-item bus-seg">🚌 <strong>${seg.busNo}번</strong>&nbsp;${seg.startStop} → ${seg.endStop}&nbsp;(<strong>${seg.stationCount}정거장</strong>, 약 ${seg.sectionTime}분)</div>`;
-                }
+                if (seg.type === 'walk') return `<div class="segment-item walk">🚶 도보 <strong>${(seg.distance / 1000).toFixed(2)} km</strong> 약 <strong>${seg.sectionTime}분</strong></div>`;
+                if (seg.type === 'subway') return `<div class="segment-item subway-seg">🚇 <strong>${seg.lineName}</strong> ${seg.startStation} → ${seg.endStation} (<strong>${seg.stationCount}역</strong>, 약 ${seg.sectionTime}분)</div>`;
+                if (seg.type === 'bus') return `<div class="segment-item bus-seg">🚌 <strong>${seg.busNo}번</strong> ${seg.startStop} → ${seg.endStop} (<strong>${seg.stationCount}정거장</strong>, 약 ${seg.sectionTime}분)</div>`;
                 return '';
             }).join('<div class="seg-arrow">↓</div>');
 
             const boardingCardsHtml = segmentInfos.map(info => {
-                const headerLabel = info.isTransfer
-                    ? `환승 탑승 정보 <span class="transfer-badge">환승</span>`
-                    : `첫 번째 탑승 정보`;
+                const headerLabel = info.isTransfer ? `환승 탑승 정보 <span class="transfer-badge">환승</span>` : `첫 번째 탑승 정보`;
 
                 if (info.type === 'subway') {
                     const trains = info.availableTrains || [];
                     const trainsHtml = trains.length
                         ? trains.map(t => `
                             <div class="train-item">
-                                출발 <strong>${t.departureTime.slice(0, 5)}</strong>
-                                &nbsp;→&nbsp; 종착 <strong>${t.endStation || '-'}</strong>
-                                ${t.subwayClass ? `&nbsp;(${t.subwayClass})` : ''}
-                                ${t.firstLastFlag ? `&nbsp;[${t.firstLastFlag}]` : ''}
+                                출발 <strong>${t.departureTime.slice(0, 5)}</strong> → 종착 <strong>${t.endStation || '-'}</strong>
+                                ${t.subwayClass ? `(${t.subwayClass})` : ''}
                             </div>`).join('')
                         : '<p style="color:#64748b;font-size:13px;">이용 가능한 열차가 없습니다.</p>';
-
                     return `
                         <div class="card">
                             <h3>🚇 ${headerLabel}</h3>
                             <div class="info-row"><span class="label">탑승역</span><span class="value">${info.stopOrStation}</span></div>
                             <div class="info-row"><span class="label">노선</span><span class="value">${info.transportId}</span></div>
-                            <div class="info-row">
-                                <span class="label">${info.isTransfer ? '환승역 도착 예정' : '최대 탑승 시각'}</span>
-                                <span class="value">${info.pivotTime}</span>
-                            </div>
-                            <div style="margin-top:10px;"><strong style="font-size:13px;">${info.isTransfer ? '도착 이후 이용 가능한 열차' : '이용 가능한 열차 (마감 직전 3편)'}</strong></div>
+                            <div class="info-row"><span class="label">${info.isTransfer ? '환승역 도착 예정' : '최대 탑승 시각'}</span><span class="value">${info.pivotTime}</span></div>
+                            <div style="margin-top:10px;"><strong style="font-size:13px;">${info.isTransfer ? '도착 이후 열차' : '이용 가능한 열차 (마감 직전 3편)'}</strong></div>
                             <div style="margin-top:8px;">${trainsHtml}</div>
                         </div>`;
                 } else {
                     const buses = info.arrivingBuses || [];
                     const busesHtml = buses.length
-                        ? buses.map((b, i) => `
-                            <div class="bus-item">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                                    <strong>${i + 1}번째 버스${b.plateNo ? ` <span style="color:#64748b;font-weight:normal;">(${b.plateNo})</span>` : ''}</strong>
-                                    ${b.isLast ? '<span style="color:#dc2626;font-size:12px;font-weight:bold;">[막차]</span>' : ''}
-                                </div>
-                                <div class="info-row"><span class="label">도착 예정</span><span class="value" style="color:#2563eb;">${formatRemainTime(b.remainSec)}</span></div>
-                                <div class="info-row"><span class="label">현재 위치</span><span class="value">${b.prevStop || '-'}</span></div>
-                                <div class="info-row" style="color:#64748b;font-size:12px;"><span class="label">상세</span><span>${b.arrMsg || '-'}</span></div>
-                            </div>`).join('')
+                        ? buses.map((b, i) => busItemHtml(b, i + 1)).join('')
                         : '<p style="color:#64748b;font-size:13px;">도착 예정 버스 정보가 없습니다.</p>';
-
                     return `
                         <div class="card">
                             <h3>🚌 ${headerLabel}</h3>
                             <div class="info-row"><span class="label">탑승 정류장</span><span class="value">${info.stopOrStation}</span></div>
                             <div class="info-row"><span class="label">버스 번호</span><span class="value">${info.transportId}번</span></div>
-                            <div class="info-row">
-                                <span class="label">${info.isTransfer ? '환승 정류장 도착 예정' : '최대 탑승 시각'}</span>
-                                <span class="value">${info.pivotTime}</span>
-                            </div>
+                            <div class="info-row"><span class="label">${info.isTransfer ? '환승 도착 예정' : '최대 탑승 시각'}</span><span class="value">${info.pivotTime}</span></div>
                             <div style="margin-top:10px;"><strong style="font-size:13px;">도착 예정 버스</strong></div>
                             <div style="margin-top:8px;">${busesHtml}</div>
                         </div>`;
@@ -745,37 +621,30 @@
                 ${boardingCardsHtml}`;
         }
 
-        // ── 메인 조회 함수 ────────────────────────────────────────────
+        // ── 메인 조회 ─────────────────────────────────────────────────
         async function search() {
             const pathType    = parseInt(document.getElementById('type').value);
             const arrivalTime = document.getElementById('arrivalTime').value;
+            const { startLat, startLon, endLat, endLon } = getCoords();
             const resultDiv   = document.getElementById('result');
             const btn         = document.getElementById('searchBtn');
 
-            if (!arrivalTime) {
-                resultDiv.innerHTML = '<p class="error">도착 희망 시각을 입력하세요.</p>';
-                return;
-            }
+            if (!arrivalTime) { resultDiv.innerHTML = '<p class="error">도착 희망 시각을 입력하세요.</p>'; return; }
+            if (!startLat || !startLon || !endLat || !endLon) { resultDiv.innerHTML = '<p class="error">출발지/도착지 좌표를 입력하세요.</p>'; return; }
 
             resultDiv.innerHTML = '<p class="loading">조회 중...</p>';
             btn.disabled = true;
 
             try {
-                // ── 복합 경로 (type=0): ODsay 직접 호출 후 JS에서 처리 ──
                 if (pathType === 0) {
                     const routeData = await callRouteApi(0);
                     const mixedPaths = routeData?.result?.path?.filter(p => p.pathType === 3) || [];
-
                     if (!mixedPaths.length) {
-                        resultDiv.innerHTML = `
-                            <p class="error">복합 경로(버스+지하철)를 찾을 수 없습니다. (pathType=3 결과 없음)</p>
-                            <details style="margin-top:8px;">
-                                <summary style="cursor:pointer;font-size:13px;color:#64748b;">ODsay 응답 전체 보기</summary>
-                                <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify(routeData, null, 2)}</pre>
-                            </details>`;
+                        resultDiv.innerHTML = `<p class="error">복합 경로를 찾을 수 없습니다.</p>
+                            <details><summary style="cursor:pointer;font-size:13px;color:#64748b;">ODsay 응답 보기</summary>
+                            <pre style="background:#f1f5f9;padding:12px;border-radius:6px;font-size:12px;overflow-x:auto;">${JSON.stringify(routeData, null, 2)}</pre></details>`;
                         return;
                     }
-
                     let allHtml = '';
                     for (let i = 0; i < mixedPaths.length; i++) {
                         const route = parseMixedRoute(mixedPaths[i]);
@@ -786,86 +655,61 @@
                     return;
                 }
 
-                // ── 지하철 / 버스 복수 경로 ───────────────────────────
                 const routeData = await callRouteApi(pathType);
-
                 if (!routeData?.result?.path?.length) {
-                    resultDiv.innerHTML = '<p class="error">경로를 찾을 수 없습니다.</p>';
+                    resultDiv.innerHTML = `<p class="error">경로를 찾을 수 없습니다.</p>
+                        <details open><summary style="cursor:pointer;font-size:13px;color:#64748b;">ODsay 응답 원본</summary>
+                        <pre style="background:#f1f5f9;padding:12px;border-radius:6px;font-size:12px;overflow-x:auto;">${JSON.stringify(routeData, null, 2)}</pre></details>`;
                     return;
                 }
 
                 const paths = routeData.result.path.filter(p => p.pathType === pathType);
-                if (!paths.length) {
-                    resultDiv.innerHTML = '<p class="error">해당 교통수단 경로가 없습니다.</p>';
-                    return;
-                }
+                if (!paths.length) { resultDiv.innerHTML = '<p class="error">해당 교통수단 경로가 없습니다.</p>'; return; }
 
                 let allHtml = '';
                 for (let i = 0; i < paths.length; i++) {
-                    const rawInfo = paths[i].info;
-                    const debugHtml = `
-                        <details style="margin-bottom:12px;">
-                            <summary style="cursor:pointer;font-size:13px;color:#64748b;">ODsay ${i + 1}번째 경로 path.info (원본 필드 확인)</summary>
-                            <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify(rawInfo, null, 2)}</pre>
-                        </details>`;
-
                     const routeHeader = `<div class="route-section-header">경로 ${i + 1}</div>`;
-
                     if (pathType === 1) {
                         const route = parseSubwayRoute(paths[i]);
                         const info  = await getSubwayBoardingInfo(route, arrivalTime);
-                        allHtml += routeHeader + debugHtml + `
-                            <details style="margin-bottom:12px;">
-                                <summary style="cursor:pointer;font-size:13px;color:#64748b;">파싱된 route 객체</summary>
-                                <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify({...route, segments: `[${route.segments.length}개]`}, null, 2)}</pre>
-                            </details>` + renderSubway(route, info);
+                        allHtml += routeHeader + renderSubway(route, info);
                     } else {
                         const route = parseBusRoute(paths[i]);
                         const info  = await getBusBoardingInfo(route, arrivalTime);
-                        allHtml += routeHeader + debugHtml + `
-                            <details style="margin-bottom:12px;">
-                                <summary style="cursor:pointer;font-size:13px;color:#64748b;">파싱된 route 객체</summary>
-                                <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify({...route, segments: `[${route.segments.length}개]`}, null, 2)}</pre>
-                            </details>` + renderBus(route, info);
+                        allHtml += routeHeader + renderBus(route, info);
                     }
                 }
                 resultDiv.innerHTML = allHtml;
             } catch (e) {
                 const debugBlock = e.debugData
-                    ? `<details style="margin-top:8px;" open>
-                           <summary style="cursor:pointer;font-size:13px;color:#64748b;">ODsay 스케줄 API 원본 응답 (파싱 실패 원인 확인용)</summary>
-                           <pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${JSON.stringify(e.debugData, null, 2)}</pre>
-                       </details>`
-                    : (e.responseBody
-                        ? `<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:13px;color:#64748b;">서버 응답 보기</summary><pre style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;margin-top:8px;">${e.responseBody}</pre></details>`
-                        : '');
+                    ? `<details open><summary style="cursor:pointer;font-size:13px;color:#64748b;">API 응답 원본</summary><pre style="background:#f1f5f9;padding:12px;border-radius:6px;font-size:12px;overflow-x:auto;">${JSON.stringify(e.debugData, null, 2)}</pre></details>`
+                    : '';
                 resultDiv.innerHTML = `<p class="error">오류: ${e.message}</p>${debugBlock}`;
                 console.error(e);
             } finally {
                 btn.disabled = false;
             }
         }
-        // ── 버스 도착 정보 조회 및 렌더링 ────────────────────────────
-        async function fetchBusArrivalJson() {
-            const stId       = document.getElementById('stId').value.trim();
-            const busRouteId = document.getElementById('busRouteId').value.trim();
-            const ord        = document.getElementById('ord').value.trim();
-            const resultDiv  = document.getElementById('busArrivalResult');
-            const btn        = document.getElementById('busArrivalBtn');
+
+        // ── 버스 도착 정보 단독 조회 ─────────────────────────────────
+        async function fetchBusArrival() {
+            const stId         = document.getElementById('stId').value.trim();
+            const busRouteId   = document.getElementById('busRouteId').value.trim();
+            const ord          = document.getElementById('ord').value.trim();
+            const providerCode = document.getElementById('providerCode').value;
+            const resultDiv    = document.getElementById('busArrivalResult');
+            const btn          = document.getElementById('busArrivalBtn');
 
             if (!stId || !busRouteId) {
-                resultDiv.innerHTML = '<p class="error">stId와 busRouteId를 입력하세요.</p>';
-                return;
+                resultDiv.innerHTML = '<p class="error">stId와 busRouteId를 입력하세요.</p>'; return;
             }
 
             resultDiv.innerHTML = '<p class="loading">조회 중...</p>';
             btn.disabled = true;
 
             try {
-                const url = `${BUS_ARRIVAL_URL}?stId=${encodeURIComponent(stId)}&busRouteId=${encodeURIComponent(busRouteId)}&ord=${encodeURIComponent(ord || 0)}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                resultDiv.innerHTML = renderBusArrival(data);
+                const data = await callBusArrival(stId, busRouteId, ord || 0, parseInt(providerCode));
+                resultDiv.innerHTML = renderBusArrivalInfo(data, parseInt(providerCode));
             } catch (e) {
                 resultDiv.innerHTML = `<p class="error">오류: ${e.message}</p>`;
                 console.error(e);
@@ -874,83 +718,47 @@
             }
         }
 
-        function renderBusArrival(data) {
-            const itemList = data?.ServiceResult?.msgBody?.itemList
-                          || data?.serviceResult?.msgBody?.itemList
-                          || [];
-
-            if (!itemList.length) {
+        // BusArrivalInfo flat 객체 렌더링
+        function renderBusArrivalInfo(data, providerCode) {
+            if (!data || (!data.stId && !data.arrmsg1)) {
                 return '<p class="error">도착 정보가 없습니다. stId / busRouteId / ord 값을 확인하세요.</p>';
             }
 
-            const item = itemList[0];
-
-            const routeTypeLabel = {
-                '11': '간선버스', '12': '지선버스', '13': '순환버스',
-                '14': '광역버스', '15': '급행간선', '1': '일반버스',
-                '2': '좌석버스', '3': '마을버스', '4': '직행좌석'
-            }[item.routeType] || item.routeType || '-';
-
-            function congBadge(deg) {
-                const labels = { '0':'정보없음', '3':'여유', '4':'보통', '5':'혼잡', '6':'매우혼잡' };
-                return `<span class="congestion-badge cong-${deg || 0}">${labels[deg] || '-'}</span>`;
+            // 결과 없음 케이스 (stId가 null이면 arrmsg1에 에러메시지)
+            if (!data.stId) {
+                return `<div class="bus-arrival-card"><p style="color:#dc2626;">${data.arrmsg1 || '결과 없음'}</p></div>`;
             }
 
-            function busCard(idx) {
-                const arrmsg    = item[`arrmsg${idx}`];
-                const traTime   = item[`traTime${idx}`];
-                const plainNo   = item[`plainNo${idx}`];
-                const busType   = item[`busType${idx}`];
-                const congest   = item[`congestdeg${idx}`];
-                const isLast    = item[`isLast${idx}`];
-                const prvSttn   = item[`prvSttn${idx}`];
-                const rerdieNum = item[`rerdie_Num${idx}`] || item[`rerdieNum${idx}`];
-                const gpsX      = item[`gpsX${idx}`];
-                const gpsY      = item[`gpsY${idx}`];
+            const regionLabel = providerCode === 2 ? '경기 BIS' : '서울 BIS';
 
-                const isValid = arrmsg && arrmsg.trim()
-                    && !arrmsg.includes('운행종료') && !arrmsg.includes('출발대기');
-
-                if (!isValid) {
-                    return `<div class="bus-item" style="color:#94a3b8;font-size:13px;">${idx}번째 버스: ${arrmsg || '정보 없음'}</div>`;
+            function busCard(arrMsg, remainSec) {
+                if (!arrMsg || arrMsg.includes('운행 정보 없음')) {
+                    return `<div class="bus-item" style="color:#94a3b8;font-size:13px;">정보 없음</div>`;
                 }
-
-                const busTypeLabel = { '0':'일반', '1':'저상' }[busType] || busType || '-';
-                const remainSec = parseInt(traTime) || 0;
-                const lastBadge = isLast === '1'
-                    ? '<span style="color:#dc2626;font-size:12px;font-weight:bold;">[막차]</span>' : '';
-
                 return `
                     <div class="bus-item">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                            <strong style="font-size:14px;">${idx}번째 버스
-                                ${plainNo ? `<span style="color:#64748b;font-size:12px;font-weight:normal;">(${plainNo})</span>` : ''}
-                            </strong>
-                            ${lastBadge}
+                        <div class="info-row" style="margin-top:4px;">
+                            <span class="label">도착 예정</span>
+                            <span class="value" style="color:#2563eb;">${formatRemainTime(remainSec)}</span>
                         </div>
-                        <div class="info-row"><span class="label">도착 예정</span><span class="value" style="color:#2563eb;">${formatRemainTime(remainSec)}</span></div>
-                        <div class="info-row"><span class="label">도착 메시지</span><span class="value">${arrmsg}</span></div>
-                        <div class="info-row"><span class="label">현재 위치</span><span class="value">${prvSttn || '-'}</span></div>
-                        <div class="info-row"><span class="label">남은 정류소</span><span class="value">${rerdieNum || '-'}개 전</span></div>
-                        <div class="info-row"><span class="label">혼잡도</span><span class="value">${congBadge(congest)}</span></div>
-                        <div class="info-row"><span class="label">버스 유형</span><span class="value">${busTypeLabel}</span></div>
-                        ${gpsX && gpsY ? `<div class="info-row"><span class="label">GPS</span><span class="value" style="font-size:12px;color:#64748b;">${gpsX}, ${gpsY}</span></div>` : ''}
+                        <div class="info-row"><span class="label">도착 메시지</span><span class="value">${arrMsg}</span></div>
                     </div>`;
             }
 
             return `
                 <div class="bus-arrival-card">
-                    <h3>정류소 정보</h3>
-                    <div class="info-row"><span class="label">정류소 이름</span><span class="value">${item.stNm || '-'}</span></div>
-                    <div class="info-row"><span class="label">다음 정류소</span><span class="value">${item.nxtStn || '-'}</span></div>
-                    <div class="info-row"><span class="label">버스 번호</span><span class="value">${item.busRouteAbrv || '-'}번</span></div>
-                    <div class="info-row"><span class="label">노선 유형</span><span class="value">${routeTypeLabel}</span></div>
-                    <div class="info-row"><span class="label">배차 간격</span><span class="value">${item.term || '-'}분</span></div>
+                    <h3>정류소 / 노선 정보 <span style="font-size:12px;color:#64748b;font-weight:normal;">(${regionLabel})</span></h3>
+                    <div class="info-row"><span class="label">정류소 ID</span><span class="value">${data.stId}</span></div>
+                    <div class="info-row"><span class="label">정류소 이름</span><span class="value">${data.stNm || '-'}</span></div>
+                    <div class="info-row"><span class="label">노선 ID</span><span class="value">${data.busRouteId}</span></div>
+                    <div class="info-row"><span class="label">노선 번호</span><span class="value">${data.rtNm || '-'}번</span></div>
                 </div>
                 <div class="bus-arrival-card">
                     <h3>도착 예정 버스</h3>
-                    ${busCard(1)}
-                    ${busCard(2)}
+                    <strong style="font-size:13px;">1번째 버스</strong>
+                    ${busCard(data.arrmsg1, data.traTime1)}
+                    <strong style="font-size:13px;margin-top:8px;display:block;">2번째 버스</strong>
+                    ${busCard(data.arrmsg2, data.traTime2)}
                 </div>`;
         }
         /*]]>*/

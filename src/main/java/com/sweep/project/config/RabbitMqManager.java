@@ -1,5 +1,12 @@
 package com.sweep.project.config;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
+import com.sweep.project.alarm.batch.AlarmMessageDto;
+import com.sweep.project.fcm.service.FcmSendService;
+import com.sweep.project.fcm.service.FcmTokenService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,11 +20,15 @@ import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.interceptor.RetryInterceptorBuilder;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 import org.springframework.retry.policy.SimpleRetryPolicy;
+
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-//@Configuration
+@org.springframework.context.annotation.Configuration
 @Slf4j
 @RequiredArgsConstructor
 public class RabbitMqManager {
@@ -27,15 +38,17 @@ public class RabbitMqManager {
     private final static String alarmQueueName="alarm";
     private final static String alarmExchangeName="alarmExchange";
     private final RabbitAdmin rabbitAdmin;
+    private final ObjectMapper objectMapper;
+    private final FcmSendService fcmSendService;
     private final ConcurrentHashMap<String, SimpleMessageListenerContainer> map
             =new ConcurrentHashMap<>();
 
     @PostConstruct
     public void setting(){
         createBasicSetting();
-        actionLogSetting();
+        alarmSetting();
     }
-    public void actionLogSetting(){
+    public void alarmSetting(){
         Queue actionQueue=createAlramQueue();
         Binding binding= BindingBuilder.bind(actionQueue)
                 .to(createAlarmExchange())
@@ -52,9 +65,25 @@ public class RabbitMqManager {
         ChannelAwareBatchMessageListener messageListener= (ChannelAwareBatchMessageListener) (messages, channel)
                 -> {
             try {
-                /*
-                * 알람 전송 로직 작성 공간(fcm 으로 배치 처리를 하면됨.)
-                * */
+                List<Message> messages1 = new ArrayList<>();
+                messages.stream().forEach(x -> {
+                    try {
+                        AlarmMessageDto alarmMessageDto = objectMapper.readValue(x.getBody(), AlarmMessageDto.class);
+                        alarmMessageDto.getFcmTokens().stream().forEach(y -> {
+                            Message message = Message.builder()
+                                    .setToken(y)
+                                    .setNotification(Notification.builder()
+                                            .setTitle("준비알람")
+                                            .setBody("준비알람")
+                                            .build())
+                                    .build();
+                            messages1.add(message);
+                        });
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                fcmSendService.bulkPush(messages1);
             }
             catch (Exception e){
                 throw new RuntimeException(e.getMessage());
@@ -63,7 +92,7 @@ public class RabbitMqManager {
 
         SimpleMessageListenerContainer container=
                 new SimpleMessageListenerContainer(connectionFactory);
-
+        container.setMessageListener(messageListener);
         container.addQueueNames(dLQName);
         container.setPrefetchCount(30);
         container.setAcknowledgeMode(AcknowledgeMode.AUTO);
@@ -75,7 +104,6 @@ public class RabbitMqManager {
         container.setRecoveryInterval(30000L);
         container.start();
         map.put(dLQName,container);
-
     }
     private Queue createAlramQueue(){
         Map<String, Object> args = new HashMap<>();

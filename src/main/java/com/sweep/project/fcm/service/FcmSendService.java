@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -29,5 +31,13 @@ public class FcmSendService {
                 .build();
 
         return firebaseMessaging.send(message);
+    }
+
+    public void bulkPush(List<Message> data){
+        try {
+            firebaseMessaging.sendEach(data);
+        } catch (FirebaseMessagingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

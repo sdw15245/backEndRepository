@@ -24,7 +24,7 @@ import org.springframework.retry.support.RetryTemplate;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-//@Configuration
+@org.springframework.context.annotation.Configuration
 @RequiredArgsConstructor
 @Slf4j
 public class RabbitMqConfig {
