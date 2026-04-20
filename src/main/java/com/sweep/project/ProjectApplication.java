@@ -1,9 +1,12 @@
 package com.sweep.project;
 
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-//@EnableScheduling     임시주석
+@EnableScheduling
+@EnableBatchProcessing(tablePrefix ="batch_" )
 @SpringBootApplication
 public class ProjectApplication {
 

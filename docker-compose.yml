@@ -58,7 +58,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-
+  #debezium:
+   # image: quay.io/debezium/server:2.7
+    #container_name: debezium
+    # ports: 제거 — 외부 노출 불필요
+    #volumes:
+    #  - ./conf:/debezium/conf
+    #  - ./data:/debezium/data
+    #depends_on:
+     # rabbitmq:
+      #  condition: service_healthy
+    #networks:
+     # - sweepMap-network
+    #restart: always
 volumes:
   rabbitmq_data:
     driver: local
