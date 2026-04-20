@@ -1,11 +1,10 @@
 package com.sweep.project.alarm.batch;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sweep.project.alarm.repository.AlarmTicketRepo;
 import com.sweep.project.fcm.repository.FcmTokenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
@@ -59,8 +58,7 @@ public class AlarmBatchConfig {
 
     private final AlarmTicketRepo alarmTicketRepo;
     private final FcmTokenRepository fcmTokenRepository;
-    private final RabbitTemplate rabbitTemplate;
-    private final ObjectMapper objectMapper;
+    private final StringRedisTemplate redisTemplate;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
 
@@ -133,6 +131,6 @@ public class AlarmBatchConfig {
     @StepScope
     public AlarmBatchWriter alarmBatchWriter(
             @Value("#{jobExecutionContext['schedulerRunAt']}") LocalDateTime schedulerRunAt) {
-        return new AlarmBatchWriter(rabbitTemplate, fcmTokenRepository, objectMapper, schedulerRunAt);
+        return new AlarmBatchWriter(redisTemplate, fcmTokenRepository, schedulerRunAt);
     }
 }

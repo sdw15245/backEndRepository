@@ -1,5 +1,6 @@
 package com.sweep.project.route.domain;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class RouteDbService {
 
     private final RouteRepository routeRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * 각 route JSON 을 개별 행으로 저장하고 생성된 PK 목록을 반환한다.
@@ -35,16 +37,18 @@ public class RouteDbService {
 
         List<Long> ids = new ArrayList<>();
         for (String routeJson : routeJsonList) {
+            Integer totalTime = parseTotalTime(routeJson);
             Route saved = routeRepository.save(
                     Route.builder()
                             .type(type)
                             .startX(sx).startY(sy)
                             .endX(ex).endY(ey)
                             .routeData(routeJson)
+                            .totalTime(totalTime)
                             .build());
             ids.add(saved.getId());
-            log.info("[RouteDb] 저장 id={} type={} coords=[{},{}→{},{}]",
-                    saved.getId(), type, sx, sy, ex, ey);
+            log.info("[RouteDb] 저장 id={} type={} totalTime={} coords=[{},{}→{},{}]",
+                    saved.getId(), type, totalTime, sx, sy, ex, ey);
         }
         return ids;
     }
@@ -88,5 +92,16 @@ public class RouteDbService {
     /** 소수점 4자리 반올림 — Redis {@code %.4f} 와 동일 */
     public static double round4(double value) {
         return Math.round(value * 10_000.0) / 10_000.0;
+    }
+
+    /** routeData JSON 에서 totalTime(분) 추출. 파싱 실패 시 null 반환 */
+    private Integer parseTotalTime(String routeJson) {
+        if (routeJson == null) return null;
+        try {
+            return objectMapper.readTree(routeJson).path("totalTime").asInt(0);
+        } catch (Exception e) {
+            log.warn("[RouteDb] totalTime 파싱 실패: {}", e.getMessage());
+            return null;
+        }
     }
 }
