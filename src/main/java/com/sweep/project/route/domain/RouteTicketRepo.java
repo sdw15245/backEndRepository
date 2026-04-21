@@ -6,6 +6,7 @@ import com.mysema.commons.lang.Assert;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.sweep.project.alarm.domain.QAlarm;
 import com.sweep.project.fcm.domain.QFcmToken;
 import com.sweep.project.route.batch.RouteBatchDto;
 import com.sweep.project.route.dto.NeedCheckAlertDto;
@@ -24,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static com.sweep.project.alarm.domain.QAlarm.*;
 import static com.sweep.project.fcm.domain.QFcmToken.fcmToken;
 import static com.sweep.project.route.domain.QRoute.*;
 import static com.sweep.project.route.domain.QRouteTicket.*;
@@ -157,11 +159,13 @@ public class RouteTicketRepo {
         return jpaQueryFactory.select(
                 Projections.constructor(NeedCheckAlertDto.class,
                         fcmToken.token
-                        ,routeTicket.id)
+                        ,alarm.alarmId)
                 )
                 .from(routeTicket)
                 .join(fcmToken)
                 .on(fcmToken.memberId.eq(routeTicket.member.id))
+                .join(alarm)
+                .on(alarm.routeTicket.eq(routeTicket))
                 .where(routeTicket.id.in(ids))
                 .fetch();
     }

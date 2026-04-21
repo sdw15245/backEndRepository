@@ -35,7 +35,7 @@ public class NullRouteTicketWriter implements ItemWriter<Long> {
 
         List<Message> messages=needCheckAlertDtos.stream().map(x->{
             return Message.builder()
-                    .putData("routeTicketId",x.getRouteTicketId().toString())
+                    .putData("alarmId",x.getAlarmId().toString())
                     .setToken(x.getFcmToken())
                     .setApnsConfig(ApnsConfig.builder()
                             .setAps(Aps.builder()
