@@ -1,6 +1,7 @@
 package com.sweep.project.route.batch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sweep.project.fcm.service.FcmSendService;
 import com.sweep.project.route.TrafficRouteStragy;
 import com.sweep.project.route.domain.RouteTicketRepo;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class RouteBatchConfig {
     private final ObjectMapper objectMapper;
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
+    private final FcmSendService fcmSendService;
 
     // ── Job ───────────────────────────────────────────────────────────────────
 
@@ -151,6 +153,6 @@ public class RouteBatchConfig {
     @Bean
     @StepScope
     public NullRouteTicketWriter nullRouteTicketWriter() {
-        return new NullRouteTicketWriter(routeTicketRepo);
+        return new NullRouteTicketWriter(routeTicketRepo,fcmSendService);
     }
 }
