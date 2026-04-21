@@ -1,11 +1,16 @@
 package com.sweep.project.route.batch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.messaging.ApnsConfig;
+import com.google.firebase.messaging.Aps;
+import com.google.firebase.messaging.Message;
 import com.sweep.project.alarm.batch.AlarmBatchDto;
 import com.sweep.project.alarm.batch.AlarmMessageDto;
 import com.sweep.project.alarm.batch.AlarmType;
 import com.sweep.project.fcm.repository.FcmTokenRepository;
+import com.sweep.project.fcm.service.FcmSendService;
 import com.sweep.project.route.domain.RouteTicketRepo;
+import com.sweep.project.route.dto.NeedCheckAlertDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -20,13 +25,26 @@ import java.util.List;
 public class NullRouteTicketWriter implements ItemWriter<Long> {
 
     private final RouteTicketRepo routeTicketRepo;
+    private final FcmSendService fcmSendService;
 
     @Override
     public void write(Chunk<? extends Long> chunk) throws Exception {
         routeTicketRepo.updateNeedCheckBatch(chunk.getItems());
-        /*
-        * postgresql의 데비지움 하고 연결해서 cdc기반으로 needcheck 가 update된걸 캐치해서 rabbitmq에 넘기는걸로 생각을 해봐야겠는대
-        * */
+
+        List<NeedCheckAlertDto> needCheckAlertDtos=routeTicketRepo.getFcmTokenFromRouteTicket(chunk.getItems());
+
+        List<Message> messages=needCheckAlertDtos.stream().map(x->{
+            return Message.builder()
+                    .putData("alarmId",x.getAlarmId().toString())
+                    .setToken(x.getFcmToken())
+                    .setApnsConfig(ApnsConfig.builder()
+                            .setAps(Aps.builder()
+                                    .setContentAvailable(true)
+                                    .build())
+                            .build())
+                    .build();
+        }).toList();
+        fcmSendService.bulkPush(messages);
     }
 
 }

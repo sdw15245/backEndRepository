@@ -102,6 +102,7 @@ bus:
       seoul-url: https://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute
       gbis-url: https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalItemv2
     station-ord:
-      gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationList
+      gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationListv2
+      seoul-url: https://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute
 firebase:
   config-path: ${FIREBASE_TOKEN_PATH}

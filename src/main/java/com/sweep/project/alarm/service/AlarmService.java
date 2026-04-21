@@ -1,6 +1,8 @@
 package com.sweep.project.alarm.service;
 
 import com.sweep.project.alarm.domain.Alarm;
+import com.sweep.project.alarm.dto.AlarmDetailResponse;
+import com.sweep.project.alarm.dto.AlarmSummaryResponse;
 import com.sweep.project.alarm.repository.AlarmRepository;
 import com.sweep.project.fcm.domain.FcmToken;
 import com.sweep.project.fcm.repository.FcmTokenRepository;
@@ -58,9 +60,21 @@ public class AlarmService {
         return alarm;
     }
 
-    // 조회 (내 알림 목록)
-    public List<Alarm> getMyAlarms(Long memberId) {
-        return alarmRepository.findAllByRouteTicket_Member_IdAndDeletedFalse(memberId);
+    // 목록 조회 (요약 정보)
+    @Transactional(readOnly = true)
+    public List<AlarmSummaryResponse> getMyAlarms(Long memberId) {
+        return alarmRepository.findAllByRouteTicket_Member_IdAndDeletedFalse(memberId)
+                .stream()
+                .map(AlarmSummaryResponse::new)
+                .collect(Collectors.toList());
+    }
+
+    // 상세 조회 (알람 + RouteTicket + Route 정보)
+    @Transactional(readOnly = true)
+    public AlarmDetailResponse getAlarmDetail(Long alarmId) {
+        Alarm alarm = alarmRepository.findById(alarmId)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
+        return new AlarmDetailResponse(alarm);
     }
 
     // 수정 — 기존 Redis 키 삭제 후 당일 조건 충족 시 즉시 재등록
