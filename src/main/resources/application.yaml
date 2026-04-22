@@ -55,9 +55,9 @@ spring:
             authorization-grant-type: authorization_code
             scope:
               - account_email
-              - gender
-              - birthday
-              - birthyear
+              #- gender
+              #- birthday
+              #- birthyear
             redirect-uri: "{baseUrl}/{action}/oauth2/code/{registrationId}"
         provider:
           naver:
