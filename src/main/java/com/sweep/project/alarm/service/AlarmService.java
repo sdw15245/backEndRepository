@@ -1,8 +1,10 @@
 package com.sweep.project.alarm.service;
 
 import com.sweep.project.alarm.domain.Alarm;
+import com.sweep.project.alarm.dto.AlarmCreateRequest;
 import com.sweep.project.alarm.dto.AlarmDetailResponse;
 import com.sweep.project.alarm.dto.AlarmSummaryResponse;
+import com.sweep.project.alarm.dto.AlarmUpdateRequest;
 import com.sweep.project.alarm.repository.AlarmRepository;
 import com.sweep.project.fcm.domain.FcmToken;
 import com.sweep.project.fcm.repository.FcmTokenRepository;
@@ -28,21 +30,18 @@ public class AlarmService {
     private final RouteTicketRepository routeTicketRepository;
 
     // 생성
-    public Alarm createAlarm(Long routeTicketId,
-                             LocalDateTime arrivalTime, LocalDateTime startTime,
-                             Integer prepareTime, Integer interval,
-                             Boolean isLoop, String day) {
-        RouteTicket routeTicket = routeTicketRepository.findById(routeTicketId)
+    public Alarm createAlarm(AlarmCreateRequest req) {
+        RouteTicket routeTicket = routeTicketRepository.findById(req.routeTicketId())
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 RouteTicket"));
 
         Alarm alarm = Alarm.builder()
                 .routeTicket(routeTicket)
-                .arrivalTime(arrivalTime)
-                .startTime(startTime)
-                .prepareTime(prepareTime)
-                .interval(interval)
-                .isLoop(isLoop)
-                .day(day)
+                .arrivalTime(req.arrivalTime())
+                .startTime(req.startTime())
+                .prepareTime(req.prepareTime())
+                .interval(req.interval())
+                .isLoop(req.isLoop())
+                .day(req.day())
                 .build();
         alarmRepository.save(alarm);
 
@@ -52,8 +51,8 @@ public class AlarmService {
             List<String> tokens = fcmTokenRepository.findAllByMemberId(routeTicket.getMember().getId())
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
-                    alarm.getAlarmId(), alarm.getMemberId(), startTime, arrivalTime,
-                    totalTime, prepareTime, interval, tokens);
+                    alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
+                    totalTime, req.prepareTime(), req.interval(), tokens);
         }
 
         return alarm;
@@ -77,21 +76,20 @@ public class AlarmService {
     }
 
     // 수정 — 기존 Redis 키 삭제 후 당일 조건 충족 시 즉시 재등록
-    public void updateAlarm(Long alarmId, LocalDateTime arrivalTime,
-                            LocalDateTime startTime, Integer prepareTime,
-                            Boolean isLoop, String day) {
+    public void updateAlarm(Long alarmId, AlarmUpdateRequest req) {
         Alarm alarm = alarmRepository.findById(alarmId)
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
         alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
-        alarm.updateAlarm(arrivalTime, startTime, prepareTime, isLoop, day);
+        Integer newInterval = req.interval() != null ? req.interval() : alarm.getInterval();
+        alarm.updateAlarm(req.arrivalTime(), req.startTime(), req.prepareTime(), newInterval, req.isLoop(), req.day());
 
         Integer totalTime = alarm.getRouteTicket().getRoute().getTotalTime();
         if (totalTime != null) {
             List<String> tokens = fcmTokenRepository.findAllByMemberId(alarm.getMemberId())
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
-                    alarm.getAlarmId(), alarm.getMemberId(), startTime, arrivalTime,
-                    totalTime, prepareTime, alarm.getInterval(), tokens);
+                    alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
+                    totalTime, req.prepareTime(), newInterval, tokens);
         }
     }
 
