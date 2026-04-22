@@ -7,10 +7,10 @@ import com.sweep.project.alarm.dto.AlarmSummaryResponse;
 import com.sweep.project.alarm.dto.AlarmUpdateRequest;
 import com.sweep.project.alarm.service.AlarmService;
 import com.sweep.project.member.service.SecurityMemberReadService;
+import com.sweep.project.util.ApiResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -41,7 +41,7 @@ public class AlarmController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "알람 생성 성공",
-                    content = @Content(schema = @Schema(implementation = Alarm.class))),
+                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
             @ApiResponse(responseCode = "400", description = "요청 값 검증 실패 (필수 값 누락, 형식 오류 등)",
                     content = @Content(schema = @Schema())),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
@@ -50,8 +50,9 @@ public class AlarmController {
     @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
             required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @PostMapping
-    public Alarm createAlarm(@Valid @RequestBody AlarmCreateRequest request) {
-        return alarmService.createAlarm(request);
+    public ApiResponseUtil<Alarm> createAlarm(@Valid @RequestBody AlarmCreateRequest request) {
+        Alarm alarm = alarmService.createAlarm(request);
+        return ApiResponseUtil.SuccessApiResponse("알람 생성 성공", alarm);
     }
 
     @Operation(
@@ -60,16 +61,17 @@ public class AlarmController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = AlarmSummaryResponse.class)))),
+                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
                     content = @Content(schema = @Schema()))
     })
     @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
             required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @GetMapping
-    public List<AlarmSummaryResponse> getMyAlarms() {
+    public ApiResponseUtil<List<AlarmSummaryResponse>> getMyAlarms() {
         Long memberId = securityMemberReadService.securityMemberRead().getId();
-        return alarmService.getMyAlarms(memberId);
+        List<AlarmSummaryResponse> alarms = alarmService.getMyAlarms(memberId);
+        return ApiResponseUtil.SuccessApiResponse("내 알람 목록 조회 성공", alarms);
     }
 
     @Operation(
@@ -84,7 +86,7 @@ public class AlarmController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = AlarmDetailResponse.class))),
+                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 알람 ID",
                     content = @Content(schema = @Schema())),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
@@ -93,11 +95,12 @@ public class AlarmController {
     @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
             required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @GetMapping("/{alarmId}")
-    public AlarmDetailResponse getAlarmDetail(
+    public ApiResponseUtil<AlarmDetailResponse> getAlarmDetail(
             @Parameter(description = "조회할 알람 ID", required = true, example = "1")
             @PathVariable Long alarmId
     ) {
-        return alarmService.getAlarmDetail(alarmId);
+        AlarmDetailResponse detail = alarmService.getAlarmDetail(alarmId);
+        return ApiResponseUtil.SuccessApiResponse("알람 상세 조회 성공", detail);
     }
 
     @Operation(
@@ -109,7 +112,8 @@ public class AlarmController {
                     """
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "알람 수정 성공"),
+            @ApiResponse(responseCode = "200", description = "알람 수정 성공",
+                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
             @ApiResponse(responseCode = "400", description = "요청 값 검증 실패 (필수 값 누락, 형식 오류 등)",
                     content = @Content(schema = @Schema())),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
@@ -118,27 +122,30 @@ public class AlarmController {
     @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
             required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @PutMapping("/{alarmId}")
-    public void updateAlarm(
+    public ApiResponseUtil<Void> updateAlarm(
             @Parameter(description = "수정할 알람 ID", required = true, example = "1")
             @PathVariable Long alarmId,
             @Valid @RequestBody AlarmUpdateRequest request
     ) {
         alarmService.updateAlarm(alarmId, request);
+        return ApiResponseUtil.SuccessApiResponse("알람 수정 성공", null);
     }
 
     @Operation(summary = "알람 삭제", description = "특정 알람을 삭제(soft delete)합니다. 연관된 Redis 키도 함께 제거됩니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "알람 삭제 성공"),
+            @ApiResponse(responseCode = "200", description = "알람 삭제 성공",
+                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
                     content = @Content(schema = @Schema()))
     })
     @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
             required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @DeleteMapping("/{alarmId}")
-    public void deleteAlarm(
+    public ApiResponseUtil<Void> deleteAlarm(
             @Parameter(description = "삭제할 알람 ID", required = true, example = "1")
             @PathVariable Long alarmId
     ) {
         alarmService.deleteAlarm(alarmId);
+        return ApiResponseUtil.SuccessApiResponse("알람 삭제 성공", null);
     }
 }
