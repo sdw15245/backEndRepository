@@ -16,7 +16,8 @@ public record AlarmCreateRequest(
         @NotNull @Positive
         Long routeTicketId,
 
-        @Schema(description = "경로 ID", example = "1")
+        @Schema(description = "경로 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull
         Long routeId,
 
         @Schema(description = "목적지 도착 예정 시각 (ISO 8601)", example = "2024-06-01T09:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -27,11 +28,13 @@ public record AlarmCreateRequest(
         @NotNull
         LocalDateTime startTime,
 
-        @Schema(description = "출발 전 준비 시간 (분). isLoop=true 시 필수", example = "60")
+        @Schema(description = "출발 전 준비 시간 (분)", example = "60", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull
         @Min(1) @Max(1440)
         Integer prepareTime,
 
-        @Schema(description = "준비 알람 발송 간격 (분). isLoop=true 시 필수", example = "20")
+        @Schema(description = "준비 알람 발송 간격 (분)", example = "20", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull
         @Min(1) @Max(240)
         Integer interval,
 
