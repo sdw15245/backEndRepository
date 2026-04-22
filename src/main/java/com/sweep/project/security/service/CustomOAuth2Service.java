@@ -83,7 +83,6 @@ public class CustomOAuth2Service extends DefaultOAuth2UserService {
                 return new GoogleResponse(userData.getAttributes());
             }
             case "kakao"->{
-                log.info("userdata:{}",userData.getAttributes());
                 return new KakaoResponse(userData.getAttributes());
             }
             default ->{
