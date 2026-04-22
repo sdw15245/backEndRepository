@@ -39,7 +39,7 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
             String member = objectMapper.writeValueAsString(customOAuth2User.getMember());
             redisUserInfoService.setLoginUserInfo(customOAuth2User.getId(), member, refreshToken);
             response.addHeader(AUTHORIZATION, TOKEN_PREFIX.getValue() + accessToken);
-            //로컬에서 테스트시 원하는 주소로 바꾸시면됩니다.
+            response.sendRedirect("/kakao-test?token=" + accessToken);
             log.info("{} 유저에대한 로그인이 정상적으로 되었습니다", customOAuth2User.getEmail());
         }
         catch (Exception e){

@@ -1,5 +1,5 @@
 package com.sweep.project.member.domain;
 
 public enum MemberType {
-    GOOGLE
+    GOOGLE,KAKAO
 }

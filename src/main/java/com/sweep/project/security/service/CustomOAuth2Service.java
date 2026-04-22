@@ -5,6 +5,7 @@ import com.sweep.project.member.repository.MemberRepositoryAdvance;
 import com.sweep.project.member.domain.MemberType;
 import com.sweep.project.security.domain.CustomOAuth2User;
 import com.sweep.project.security.domain.GoogleResponse;
+import com.sweep.project.security.domain.KakaoResponse;
 import com.sweep.project.security.domain.OAuth2Response;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -80,6 +81,10 @@ public class CustomOAuth2Service extends DefaultOAuth2UserService {
         switch (registrationId){
             case "google"->{
                 return new GoogleResponse(userData.getAttributes());
+            }
+            case "kakao"->{
+                log.info("userdata:{}",userData.getAttributes());
+                return new KakaoResponse(userData.getAttributes());
             }
             default ->{
                 return null;
