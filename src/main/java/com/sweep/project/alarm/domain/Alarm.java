@@ -1,5 +1,6 @@
 package com.sweep.project.alarm.domain;
 
+import com.sweep.project.route.domain.RouteTicket;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,15 +17,9 @@ public class Alarm {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long alarmId;
 
-    // 연관관계는 나중에 매핑 (지금은 ID만 저장)
-    @Column(nullable = false)
-    private Long routeTicketId;
-
-    @Column(nullable = false)
-    private Long memberId;
-
-    @Column(nullable = false)
-    private Long routeId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "route_ticket_id", nullable = false)
+    private RouteTicket routeTicket;
 
     private Integer interval;           // 준비 알림 간격 (분)
     private String day;                 // 반복 요일
@@ -35,13 +30,11 @@ public class Alarm {
     private Integer prepareTime;        // 사용자 지정 준비시간 (분)
 
     @Builder
-    public Alarm(Long routeTicketId, Long memberId, Long routeId,
+    public Alarm(RouteTicket routeTicket,
                  Integer interval, String day, Boolean isLoop,
                  LocalDateTime arrivalTime, LocalDateTime startTime,
                  Integer prepareTime) {
-        this.routeTicketId = routeTicketId;
-        this.memberId = memberId;
-        this.routeId = routeId;
+        this.routeTicket = routeTicket;
         this.interval = interval;
         this.day = day;
         this.isLoop = isLoop;
@@ -49,6 +42,14 @@ public class Alarm {
         this.startTime = startTime;
         this.prepareTime = prepareTime;
     }
+
+    // ── 편의 접근자 ────────────────────────────────────────────────────────────
+
+    public Long getRouteTicketId() { return routeTicket.getId(); }
+    public Long getMemberId()      { return routeTicket.getMember().getId(); }
+    public Long getRouteId()       { return routeTicket.getRoute().getId(); }
+
+    // ── 변경 메서드 ────────────────────────────────────────────────────────────
 
     public void updateAlarm(LocalDateTime arrivalTime, LocalDateTime startTime,
                             Integer prepareTime, Integer interval,

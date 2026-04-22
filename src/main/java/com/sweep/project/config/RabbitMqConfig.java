@@ -19,12 +19,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.RetryListener;
+import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.retry.interceptor.RetryInterceptorBuilder;
+import org.springframework.retry.interceptor.RetryOperationsInterceptor;
+import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-//@Configuration
+@org.springframework.context.annotation.Configuration
 @RequiredArgsConstructor
 @Slf4j
 public class RabbitMqConfig {
@@ -129,6 +133,21 @@ public class RabbitMqConfig {
         }
         ));
         return rabbitTemplate;
+    }
+
+    @Bean(name ="batchRetryOperationsInterceptor")
+    public RetryOperationsInterceptor batchRetryOperationsInterceptor(){
+        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
+        backOffPolicy.setInitialInterval(1000);
+        backOffPolicy.setMultiplier(3.0);
+        return RetryInterceptorBuilder.stateless()
+                .retryPolicy(new SimpleRetryPolicy(2))
+                .backOffPolicy(backOffPolicy)
+                .recoverer((message, cause) -> {
+                    log.error("재시도 고갈 - reason:{}", cause.getMessage());
+                    return null;
+                })
+                .build();
     }
 
 }

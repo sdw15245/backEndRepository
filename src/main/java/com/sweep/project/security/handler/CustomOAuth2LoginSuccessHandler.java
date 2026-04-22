@@ -3,6 +3,7 @@ package com.sweep.project.security.handler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sweep.project.redis.RedisUserInfoService;
 import com.sweep.project.security.domain.CustomOAuth2User;
+import com.sweep.project.util.ApiResponseUtil;
 import com.sweep.project.util.jwt.JwtUtility;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,8 +38,8 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
             String refreshToken = jwtUtility.genRefreshToken(customOAuth2User.getId());
             String member = objectMapper.writeValueAsString(customOAuth2User.getMember());
             redisUserInfoService.setLoginUserInfo(customOAuth2User.getId(), member, refreshToken);
-            response.addHeader(AUTHORIZATION, TOKEN_PREFIX.getValue() + accessToken);
-            //로컬에서 테스트시 원하는 주소로 바꾸시면됩니다.
+            //response.addHeader(AUTHORIZATION, TOKEN_PREFIX.getValue() + accessToken);
+            response.sendRedirect("http://localhost:5173/oauth2/callback?token="+accessToken);
             log.info("{} 유저에대한 로그인이 정상적으로 되었습니다", customOAuth2User.getEmail());
         }
         catch (Exception e){
@@ -51,6 +52,6 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
         response.setStatus(httpStatus.value());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        response.getWriter().write(String.format("{\"message\":\"%s\"}", message));
+        objectMapper.writeValue(response.getWriter(), ApiResponseUtil.FailApiResponse(message));
     }
 }

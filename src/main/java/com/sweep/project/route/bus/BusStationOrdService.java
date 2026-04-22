@@ -9,7 +9,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.net.URI;
 import java.util.OptionalInt;
 
@@ -36,6 +43,10 @@ public class BusStationOrdService {
 
     @Value("${bus.api.station-ord.gbis-url}")
     private String gbisStationOrdUrl;
+
+
+    @Value("${bus.api.station-ord.seoul-url}")
+    private String seoulStationOrdUrl;
 
     /**
      * providerCode + busRouteId + stId 조합으로 ord(정류소 순번)를 반환한다.
@@ -101,7 +112,35 @@ public class BusStationOrdService {
     }
 
     private int fetchSeoulOrd(String routeId, String stationId) {
-        log.warn("[BusStationOrd] 서울 순번 자동조회 미구현 routeId={} stationId={}", routeId, stationId);
-        return 0;
+        String url = UriComponentsBuilder.fromHttpUrl(seoulStationOrdUrl)
+                .queryParam("serviceKey", busApiKey)
+                .queryParam("busRouteId", routeId)
+                .build(false)
+                .toUriString();
+        log.info("[BusStationOrd] 서울 순번 조회 url={}", url);
+        try {
+            String xml = restTemplate.getForObject(URI.create(url), String.class);
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(xml)));
+
+            NodeList items = doc.getElementsByTagName("itemList");
+            for (int i = 0; i < items.getLength(); i++) {
+                Element item = (Element) items.item(i);
+                String station = item.getElementsByTagName("station").item(0).getTextContent().trim();
+                if (stationId.equals(station)) {
+                    int seq = Integer.parseInt(
+                            item.getElementsByTagName("seq").item(0).getTextContent().trim());
+                    log.info("[BusStationOrd] 서울 ord={} routeId={} stationId={}", seq, routeId, stationId);
+                    return seq;
+                }
+            }
+            log.warn("[BusStationOrd] 서울 순번 못 찾음 routeId={} stationId={}", routeId, stationId);
+            return 0;
+        } catch (Exception e) {
+            log.error("[BusStationOrd] 서울 순번 조회 실패", e);
+            return 0;
+        }
     }
 }

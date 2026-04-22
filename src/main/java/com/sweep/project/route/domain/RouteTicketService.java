@@ -1,5 +1,6 @@
 package com.sweep.project.route.domain;
 
+import com.sweep.project.alarm.service.AlarmService;
 import com.sweep.project.redis.RouteRedisService;
 import com.sweep.project.route.BoardingInfo;
 import com.sweep.project.route.TrafficResponse;
@@ -30,6 +31,15 @@ public class RouteTicketService {
 
     private final RouteTicketRepository routeTicketRepository;
     private final RouteRedisService     routeRedisService;
+    private final AlarmService          alarmService;
+
+    @Transactional
+    public void deleteRouteTicket(Long ticketId) {
+        RouteTicket ticket = routeTicketRepository.findById(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 티켓: " + ticketId));
+        ticket.updateDeleted();
+        alarmService.deleteAlarmsByRouteTicket(ticketId);
+    }
 
     public RouteTicketResponse getRoute(Long ticketId, LocalDateTime arrivalTime) {
         RouteTicket ticket = routeTicketRepository.findById(ticketId)

@@ -1,15 +1,20 @@
 spring:
   application:
     name: project
+  batch:
+    job:
+      enabled: false  # 앱 시작시 배치 자동실행 끄기
+    jdbc:
+      initialize-schema: never  
   data:
     redis:
-      host: localhost
+      host: redis
       port: 6379
-      password: test
+      password: ${REDIS_PASSWORD}         # 비밀번호 없으면 빈 값 유지
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: 1234
+    url: ${DATA_BASE_URL}
+    username: ${DATA_BASE_USERNAME}
+    password: ${DATA_BASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -44,15 +49,15 @@ spring:
               - email
           kakao:
             client-name: kakao
-            client-id: adsd
-            client-secret: asasd
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             scope:
               - account_email
-              - gender
-              - birthday
-              - birthyear
+              #- gender
+              #- birthday
+              #- birthyear
             redirect-uri: "{baseUrl}/{action}/oauth2/code/{registrationId}"
         provider:
           naver:
@@ -67,18 +72,18 @@ spring:
             user-info-authentication-method: header
             user-name-attribute: id # Kakao 응답 값 id, connected_at, properties, kakao_accou
   rabbitmq:
-    host: localhost
-    password: guest
+    host: rabbitmq
+    password: ${RABBIT_PASSWORD}
     port: 5672
     username: guest
   api-docs:
     path: /v3/api-docs
   swagger-ui:
-    enabled: false
+    enabled: true
 
 jwt:
   issuer: test
-  secret-key: myverylongsecretkeythatisatleast32charsssss
+  secret-key: ${JWT_SECRET_KEY}
 
 discord:
   mq-url:
@@ -88,8 +93,8 @@ climate:
   api-url: https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst
 
 api-key:
-  odsay: W97BWiENDJB2AxK5JeRwDQ
-  korea-data-portal: njQB8V0%2Bf8iukC%2BuEysH0INTK2nGufDu5YFcjfyiAr2IRBYV8OiyTW4wX8NUQ%2BUHrBu0R6fw5mdjmgtRiqd89Q%3D%3D
+  odsay: ${ODSAY}
+  korea-data-portal: ${KOREA_DATA_PORTAL}
 
 bus:
   api:
@@ -97,6 +102,7 @@ bus:
       seoul-url: https://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute
       gbis-url: https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalItemv2
     station-ord:
-      gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationList
+      gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationListv2
+      seoul-url: https://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute
 firebase:
-  config-path: ./swpt.json
+  config-path: ${FIREBASE_TOKEN_PATH}

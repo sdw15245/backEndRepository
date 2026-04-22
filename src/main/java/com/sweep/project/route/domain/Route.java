@@ -37,19 +37,24 @@ public class Route {
     @Column(columnDefinition = "jsonb")
     private String routeData;
 
+    /** 총 소요 시간 (분) — routeData.totalTime 을 별도 컬럼으로 캐싱 */
+    private Integer totalTime;
+
     private LocalDateTime createDate;
 
     @Builder
     public Route(PathSearchType type,
                  double startX, double startY,
                  double endX, double endY,
-                 String routeData) {
+                 String routeData,
+                 Integer totalTime) {
         this.type = type;
         this.startX = startX;
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
         this.routeData = routeData;
+        this.totalTime = totalTime;
         this.createDate = LocalDateTime.now();
     }
 }

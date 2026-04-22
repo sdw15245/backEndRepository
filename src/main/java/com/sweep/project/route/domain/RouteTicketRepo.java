@@ -1,12 +1,17 @@
 package com.sweep.project.route.domain;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mysema.commons.lang.Assert;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.sweep.project.alarm.domain.QAlarm;
+import com.sweep.project.fcm.domain.QFcmToken;
 import com.sweep.project.route.batch.RouteBatchDto;
+import com.sweep.project.route.dto.NeedCheckAlertDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -20,14 +25,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static com.sweep.project.alarm.domain.QAlarm.*;
+import static com.sweep.project.fcm.domain.QFcmToken.fcmToken;
 import static com.sweep.project.route.domain.QRoute.*;
 import static com.sweep.project.route.domain.QRouteTicket.*;
 
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class RouteTicketRepo {
 
     private final JPAQueryFactory jpaQueryFactory;
+    private final ObjectMapper objectMapper;
 
     public List<Long> getMinMaxId(LocalDateTime now) {
         LocalDateTime twoMonthsAgo = now.minusMonths(2).toLocalDate().atStartOfDay();
@@ -68,7 +77,7 @@ public class RouteTicketRepo {
 
     public void updateRouteBatch(Map<Long,String> id_JsonMap, LocalDateTime updateAt) {
 
-        String sql = "UPDATE route SET route_data = ?, create_date = ? WHERE id = ?";
+        String sql = "UPDATE route SET route_data = ?, total_time = ?, create_date = ? WHERE id = ?";
         Timestamp ts = Timestamp.valueOf(updateAt);
 
         List<Map.Entry<Long, String>> entries = new ArrayList<>(id_JsonMap.entrySet());
@@ -81,15 +90,27 @@ public class RouteTicketRepo {
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
-                ps.setString(1, entries.get(i).getValue());  // null이면 DB NULL로 저장
-                ps.setTimestamp(2, ts);
-                ps.setLong(3, entries.get(i).getKey());
+                String json = entries.get(i).getValue();
+                ps.setString(1, json);  // null이면 DB NULL로 저장
+                ps.setObject(2, parseTotalTime(json));  // null이면 DB NULL로 저장
+                ps.setTimestamp(3, ts);
+                ps.setLong(4, entries.get(i).getKey());
             }
             @Override
             public int getBatchSize() {
                 return entries.size();
             }
         });
+    }
+
+    private Integer parseTotalTime(String routeJson) {
+        if (routeJson == null) return null;
+        try {
+            return objectMapper.readTree(routeJson).path("totalTime").asInt(0);
+        } catch (Exception e) {
+            log.warn("[RouteTicketRepo] totalTime 파싱 실패: {}", e.getMessage());
+            return null;
+        }
     }
 
     // ── NullRouteCheck step 전용 ───────────────────────────────────────────────
@@ -132,6 +153,23 @@ public class RouteTicketRepo {
                 .limit(pageSize)
                 .fetch();
     }
+
+
+    public List<NeedCheckAlertDto> getFcmTokenFromRouteTicket(List<? extends Long>  ids){
+        return jpaQueryFactory.select(
+                Projections.constructor(NeedCheckAlertDto.class,
+                        fcmToken.token
+                        ,alarm.alarmId)
+                )
+                .from(routeTicket)
+                .join(fcmToken)
+                .on(fcmToken.memberId.eq(routeTicket.member.id))
+                .join(alarm)
+                .on(alarm.routeTicket.eq(routeTicket))
+                .where(routeTicket.id.in(ids))
+                .fetch();
+    }
+
 
     /**
      * route_ticket의 need_check를 true로 일괄 업데이트한다.
