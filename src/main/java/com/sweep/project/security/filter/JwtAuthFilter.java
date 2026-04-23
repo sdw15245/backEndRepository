@@ -48,6 +48,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             "/v3/api-docs.yaml",
             "/swagger-ui",
             "/swagger-resources",
+            "/actuator"
     };
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
