@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 public record AlarmUpdateRequest(
-        @Schema(description = "목적지 도착 예정 시각 (ISO 8601), 수정 안할경우 기본값 전달", example = "2024-06-01T09:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "목적지 도착 예정 시각 (ISO 8601), 수정 안할경우 기존값 전달", example = "2024-06-01T09:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
         LocalDateTime arrivalTime,
 
@@ -19,17 +19,17 @@ public record AlarmUpdateRequest(
         @NotNull
         LocalDateTime startTime,
 
-        @Schema(description = "출발 전 준비 시간 (분). 기본값 60, 수정 안할경우 기본값 전달", example = "60", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "출발 전 준비 시간 (분). 기본값 60, 수정 안할경우 기존값 전달", example = "60", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
         @Min(1) @Max(1440)
         Integer prepareTime,
 
-        @Schema(description = "준비 알람 발송 간격 (분). 기본값 20, 수정 안할경우 기본값 전달", example = "20", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "준비 알람 발송 간격 (분). 기본값 20, 수정 안할경우 기존값 전달", example = "20", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
         @Min(1) @Max(240)
         Integer interval,
 
-        @Schema(description = "반복 알람 여부. true=매일/요일 반복, false=일회성, 수정 안할경우 기본값 전달", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "반복 알람 여부. true=매일/요일 반복, false=일회성, 수정 안할경우 기존값 전달", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
         Boolean isLoop,
 
