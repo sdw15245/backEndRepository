@@ -52,10 +52,12 @@ public class Alarm {
     // ── 변경 메서드 ────────────────────────────────────────────────────────────
 
     public void updateAlarm(LocalDateTime arrivalTime, LocalDateTime startTime,
-                            Integer prepareTime, Boolean isLoop, String day) {
+                            Integer prepareTime, Integer interval,
+                            Boolean isLoop, String day) {
         this.arrivalTime = arrivalTime;
         this.startTime = startTime;
         this.prepareTime = prepareTime;
+        this.interval = interval;
         this.isLoop = isLoop;
         this.day = day;
     }

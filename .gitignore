@@ -44,3 +44,7 @@ firebase-service-account.json
 
 ### QueryDSL generated ###
 src/main/generated/
+
+### Local Spring profile ###
+application-test.yaml
+application-local.yaml
