@@ -106,3 +106,11 @@ bus:
       seoul-url: https://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute
 firebase:
   config-path: ${FIREBASE_TOKEN_PATH}
+
+management:
+  server:
+    port: 9091
+  endpoints:
+    web:
+      exposure:
+        include: "prometheus"

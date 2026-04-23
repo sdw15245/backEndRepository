@@ -6,7 +6,8 @@ services:
       context: . # Dockerfile이 위치한 디렉토리
       dockerfile: Dockerfile # 빌드에 사용할 Dockerfile
     ports:
-      - "8080:8080" # 호스트와 컨테이너의 포트 매핑
+      - "8080:8080"
+      - "9091:9091" # actuator (prometheus 메트릭)
     volumes:
       - ${FIREBASE_TOKEN_SEVER_PATH}:${FIREBASE_TOKEN_PATH}:ro
     environment:                                     
@@ -58,23 +59,49 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-  #debezium:
-   # image: quay.io/debezium/server:2.7
-    #container_name: debezium
-    # ports: 제거 — 외부 노출 불필요
-    #volumes:
-    #  - ./conf:/debezium/conf
-    #  - ./data:/debezium/data
-    #depends_on:
-     # rabbitmq:
-      #  condition: service_healthy
-    #networks:
-     # - sweepMap-network
-    #restart: always
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    networks:
+      - sweepMap-network
+    restart: always
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    networks:
+      - sweepMap-network
+    restart: always
+    depends_on:
+      - prometheus
+
 volumes:
   rabbitmq_data:
     driver: local
   rabbitmq_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:
