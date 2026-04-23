@@ -37,9 +37,9 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/swagger-resources/**", // 추가
+            "/actuator/**",
     };
-    private final static String[] adminPath = {
-    };
+    private final static String[] adminPath = {};
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
