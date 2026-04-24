@@ -2,31 +2,31 @@ package com.sweep.project.route.subway;
 
 import com.sweep.project.route.RouteSegment;
 import com.sweep.project.route.TrafficResponse;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
 
-/**
- * ODsay API 응답에서 파싱된 지하철 경로 정보
- */
+@Schema(description = "지하철 전용 경로 정보 (ODsay pathType=1)")
 @Data
 @AllArgsConstructor
 public class SubwayRoute implements TrafficResponse {
 
-    /** 총 소요 시간 (분) */
+    @Schema(description = "총 소요 시간 (분)", example = "42")
     private int totalTime;
-    /** 요금 (원) */
+    @Schema(description = "요금 (원)", example = "1500")
     private int payment;
-    /** 환승 횟수 */
+    @Schema(description = "환승 횟수", example = "1")
     private int transferCount;
-    /** 지하철 탑승 횟수 */
+    @Schema(description = "지하철 탑승 횟수", example = "2")
     private int subwayTransitCount;
-    /** 총 도보 거리 (미터) */
+    @Schema(description = "총 도보 거리 (미터)", example = "320")
     private int totalWalk;
-    /** 구간 목록 (지하철 구간 + 도보 구간, 응답 순서 유지) */
+    @Schema(description = "구간 목록. WalkSegment(trafficType=3)·SubwaySegment(trafficType=1) 순서 유지")
     private List<RouteSegment> segments;
-    /** 노선별 그래픽 데이터 흭득시 첨부해야 하는값*/
+    @Schema(description = "ODsay loadLane API의 mapObject 파라미터 값. 지도 폴리라인 조회 시 사용." +
+            "만약 값에 0:0@ 이없어도 당황하지 말고 그대로 전달하시면됩니다", example = "0:0@3:2:310:329@2:2:200:215")
     private String mapObj;
 
     /**
