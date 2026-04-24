@@ -258,7 +258,8 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 transferCount,
                 info.getSubwayTransitCount(),
                 info.getTotalWalk(),
-                segments
+                segments,
+                info.getMapObj() != null ? info.getMapObj() : ""
         );
     }
 
