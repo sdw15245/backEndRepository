@@ -30,54 +30,56 @@ public class BusRoute implements TrafficResponse {
             , example = "0:0@12018:1:5:22")
     private String mapObj;
 
-    /**
-     * 버스 구간 세부 정보 (trafficType = 2)
-     */
+    @Schema(description = "버스 탑승 구간 세부 정보 (trafficType = 2)")
     @Data
     @AllArgsConstructor
     public static class BusSegment implements RouteSegment {
-        /** 버스 번호 (예: 6714) */
+
+        @Schema(description = "버스 번호", example = "405")
         private String busNo;
-        /**
-         * 버스 유형
-         * 1: 일반버스, 2: 좌석버스, 3: 마을버스, 4: 직행좌석버스,
-         * 5: 공항버스, 6: 간선급행버스, 10: 외곽버스, 11: 간선버스,
-         * 12: 지선버스, 13: 순환버스, 14: 광역버스, 15: 급행간선버스
-         */
+
+        @Schema(description = """
+                버스 유형 코드.
+                1: 일반버스, 2: 좌석버스, 3: 마을버스, 4: 직행좌석버스,
+                5: 공항버스, 6: 간선급행버스, 10: 외곽버스, 11: 간선버스,
+                12: 지선버스, 13: 순환버스, 14: 광역버스, 15: 급행간선버스""",
+                example = "11")
         private int busType;
-        /** 출발 정류장 이름 */
+
+        @Schema(description = "탑승 정류장 이름", example = "서울역")
         private String startStop;
-        /** 도착 정류장 이름 */
+
+        @Schema(description = "하차 정류장 이름", example = "강남역")
         private String endStop;
-        /** 통과 정류장 수 */
+
+        @Schema(description = "탑승~하차 구간 정류장 수", example = "14")
         private int stationCount;
-        /** 구간 소요 시간 (분) */
+
+        @Schema(description = "구간 소요 시간 (분)", example = "30")
         private int sectionTime;
-        /** 구간 거리 (미터) */
+
+        @Schema(description = "구간 거리 (미터)", example = "8400")
         private int distance;
-        /**
-         * 서울 버스 API busRouteId (ODsay lane.busID).
-         * getArrInfoByRoute 호출 시 busRouteId 파라미터로 사용.
-         */
+
+        @Schema(description = "BIS 버스 노선 ID (ODsay lane.busID). /route/bus/arrival의 busRouteId 파라미터로 사용", example = "100100118")
         private int busRouteId;
-        /**
-         * 탑승 정류소 ID (ODsay subPath.startID).
-         * getArrInfoByRoute 호출 시 stId 파라미터로 사용.
-         */
+
+        @Schema(description = "탑승 정류소 ID (ODsay subPath.startID). /route/bus/arrival의 stId 파라미터로 사용", example = "100000080")
         private int startStopId;
-        /**
-         * 탑승 정류소의 노선 내 순번 (ord).
-         * ODsay에 해당 필드 없음 - getBusArrival 내부에서 BIS API로 자동 조회.
-         */
+
+        @Schema(description = "노선 내 탑승 정류소 순번(ord). 0이면 /route/bus/arrival 호출 시 서버가 자동 조회", example = "0")
         private int startStopOrder;
 
-        /** 각 지역 출발 정류장 ID (BIS 제공지역인 경우에만 존재) */
+        @Schema(description = "지역 BIS 출발 정류장 ID (BIS 제공 지역에만 존재). ODsay subPath.startLocalStationID", example = "124000414")
         private String localBusStationId;
-        /** 각 지역 출발 정류장 BIS 코드 (BIS 제공지역인 경우에만 존재) */
+
+        @Schema(description = "출발 정류장 BIS 제공 기관 코드. 2=경기도, 4=서울", example = "4")
         private int stationProviderCode;
-        /** 각 지역 버스노선 ID (BIS 제공지역인 경우에만 존재) */
+
+        @Schema(description = "지역 BIS 버스 노선 ID (BIS 제공 지역에만 존재). ODsay lane.busLocalBlID", example = "100100118")
         private String localBusId;
-        /** 버스노선 BIS 코드 (BIS 제공지역인 경우에만 존재) */
+
+        @Schema(description = "버스 노선 BIS 제공 기관 코드. 2=경기도, 4=서울", example = "4")
         private int busProviderCode;
 
         @Override

@@ -29,31 +29,39 @@ public class SubwayRoute implements TrafficResponse {
             "만약 값에 0:0@ 이없어도 당황하지 말고 그대로 전달하시면됩니다", example = "0:0@3:2:310:329@2:2:200:215")
     private String mapObj;
 
-    /**
-     * 지하철 구간 세부 정보 (trafficType = 1)
-     */
+    @Schema(description = "지하철 탑승 구간 세부 정보 (trafficType = 1)")
     @Data
     @AllArgsConstructor
     public static class SubwaySegment implements RouteSegment {
-        /** 노선명 (예: 수도권 2호선) */
+
+        @Schema(description = "노선명", example = "수도권 3호선")
         private String lineName;
-        /** 지하철 노선 코드 */
+
+        @Schema(description = "지하철 노선 코드 (ODsay lane.subwayCode). loadLane mapObject 구성 시 ID로 사용", example = "3")
         private int subwayCode;
-        /** 출발역 이름 */
+
+        @Schema(description = "탑승역 이름", example = "교대")
         private String startStation;
-        /** 도착역 이름 */
+
+        @Schema(description = "하차역 이름", example = "을지로3가")
         private String endStation;
-        /** 통과 역 수 */
+
+        @Schema(description = "탑승~하차 구간 역 수", example = "7")
         private int stationCount;
-        /** 구간 소요 시간 (분) */
+
+        @Schema(description = "구간 소요 시간 (분)", example = "14")
         private int sectionTime;
-        /** 구간 거리 (미터) */
+
+        @Schema(description = "구간 거리 (미터)", example = "9200")
         private int distance;
-        /** 출발역 ID (searchSubwaySchedule API의 stationID로 사용) */
+
+        @Schema(description = "탑승역 ID (ODsay subPath.startID). searchSubwaySchedule API의 stationID 파라미터로 사용", example = "310")
         private int startID;
-        /** 도착역 id(구간 종착)*/
+
+        @Schema(description = "하차역 ID (ODsay subPath.endID). loadLane mapObject 구성 시 EndIdx로 사용", example = "329")
         private int endId;
-        /** 방향 코드 (1: 상행 → up 스케줄, 2: 하행 → down 스케줄) */
+
+        @Schema(description = "운행 방향 코드. 1=상행(up 시간표), 2=하행(down 시간표)", example = "2")
         private int wayCode;
 
         @Override
