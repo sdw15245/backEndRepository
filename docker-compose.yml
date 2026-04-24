@@ -22,6 +22,8 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       RABBIT_PASSWORD: ${RABBIT_PASSWORD}
       FIREBASE_TOKEN_PATH: ${FIREBASE_TOKEN_PATH}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     networks:
       - sweepMap-network
     restart: always
