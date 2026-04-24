@@ -85,7 +85,6 @@ public class BusArrivalService {
     }
 
     private BusArrivalInfo parseGbisArrivalJson(String json) {
-        log.info("[BusArrival] 경기도 원본 JSON={}", json);
         try {
             JsonNode root = objectMapper.readTree(json);
             JsonNode msgHeader = root.path("response").path("msgHeader");
@@ -128,7 +127,6 @@ public class BusArrivalService {
     }
 
     private BusArrivalInfo parseBusArrivalXml(String xml) {
-        log.info("[BusArrival] 서울 원본 XML={}", xml);
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);

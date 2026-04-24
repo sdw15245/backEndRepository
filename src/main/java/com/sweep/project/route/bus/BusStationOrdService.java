@@ -117,8 +117,9 @@ public class BusStationOrdService {
                 .queryParam("busRouteId", routeId)
                 .build(false)
                 .toUriString();
-        log.info("[BusStationOrd] 서울 순번 조회 url={}", url);
+
         try {
+            log.info("[BusStationOrd] 서울 순번 조회 url={}",URI.create(url));
             String xml = restTemplate.getForObject(URI.create(url), String.class);
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);

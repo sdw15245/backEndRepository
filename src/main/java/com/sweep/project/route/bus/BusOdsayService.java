@@ -162,7 +162,8 @@ public class BusOdsayService extends AbstractRouteSearch {
                 transferCount,
                 info.getBusTransitCount(),
                 info.getTotalWalk(),
-                segments
+                segments,
+                info.getMapObj() != null ? info.getMapObj() : ""
         );
     }
 }

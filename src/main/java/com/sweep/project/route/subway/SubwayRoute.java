@@ -26,6 +26,8 @@ public class SubwayRoute implements TrafficResponse {
     private int totalWalk;
     /** 구간 목록 (지하철 구간 + 도보 구간, 응답 순서 유지) */
     private List<RouteSegment> segments;
+    /** 노선별 그래픽 데이터 흭득시 첨부해야 하는값*/
+    private String mapObj;
 
     /**
      * 지하철 구간 세부 정보 (trafficType = 1)

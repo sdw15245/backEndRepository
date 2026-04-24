@@ -54,6 +54,8 @@ public class OdsayRouteResponse {
         private int busTransitCount;
         /** 지하철 탑승 횟수 */
         private int subwayTransitCount;
+        /** 경로 그래픽 데이터 조회시에 쓸값 그대로 넘겨주면된다.*/
+        private String mapObj;
     }
 
     @Data

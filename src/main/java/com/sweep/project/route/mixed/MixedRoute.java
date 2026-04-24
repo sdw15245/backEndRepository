@@ -29,4 +29,6 @@ public class MixedRoute implements TrafficResponse {
     private int totalWalk;
     /** 구간 목록 – trafficType으로 WalkSegment(3)/SubwaySegment(1)/BusSegment(2) 구분 */
     private List<RouteSegment> segments;
+    /** 노선별 그래픽 데이터 흭득시 첨부해야 하는값*/
+    private String mapObj;
 }
