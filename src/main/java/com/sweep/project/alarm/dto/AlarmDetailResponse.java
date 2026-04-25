@@ -3,14 +3,13 @@ package com.sweep.project.alarm.dto;
 import com.sweep.project.alarm.domain.Alarm;
 import com.sweep.project.route.domain.PathSearchType;
 import com.sweep.project.route.domain.Route;
-import com.sweep.project.route.domain.RouteTicket;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
 
 @Getter
-@Schema(description = "알람 상세 응답 - 알람 정보 및 연결된 경로·티켓 정보 포함")
+@Schema(description = "알람 상세 응답 - 알람 정보 및 연결된 경로 정보 포함")
 public class AlarmDetailResponse {
 
     // ── 알람 정보 ────────────────────────────────────────────────────────────
@@ -36,16 +35,11 @@ public class AlarmDetailResponse {
     @Schema(description = "출발 전 준비 시간 (분)", example = "60")
     private final Integer prepareTime;
 
-    // ── RouteTicket 정보 ─────────────────────────────────────────────────────
-
-    @Schema(description = "경로 티켓 ID", example = "5")
-    private final Long routeTicketId;
-
-    @Schema(description = "실시간 확인 필요 여부", example = "false")
+    @Schema(description = "기존의 루트에 변경 사항이있어서 루트에 대한 새로이 검증이 필요하다는값. true면 검증이 필요하다.", example = "false")
     private final Boolean needCheck;
 
-    @Schema(description = "티켓 생성 시각", example = "2024-05-20T12:00:00")
-    private final LocalDateTime ticketCreatedAt;
+    @Schema(description = "알람 생성 시각", example = "2024-05-20T12:00:00")
+    private final LocalDateTime createdAt;
 
     // ── Route 정보 ───────────────────────────────────────────────────────────
 
@@ -82,14 +76,11 @@ public class AlarmDetailResponse {
         this.arrivalTime = alarm.getArrivalTime();
         this.interval    = alarm.getInterval();
         this.prepareTime = alarm.getPrepareTime();
+        this.needCheck   = alarm.getNeedCheck();
+        this.createdAt   = alarm.getCreatedAt();
 
-        RouteTicket ticket = alarm.getRouteTicket();
-        this.routeTicketId   = ticket.getId();
-        this.needCheck       = ticket.getNeedCheck();
-        this.ticketCreatedAt = ticket.getCreatedAt();
-
-        Route route = ticket.getRoute();
-        this.routeId   = route.getId();
+        Route route = alarm.getRoute();
+        this.routeId=route.getId();
         this.routeType = route.getType();
         this.startX    = route.getStartX();
         this.startY    = route.getStartY();

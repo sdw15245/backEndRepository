@@ -10,8 +10,10 @@ import java.util.List;
 
 @Schema(description = "지하철 전용 경로 정보 (ODsay pathType=1)")
 @Data
-@AllArgsConstructor
 public class SubwayRoute implements TrafficResponse {
+
+    @Schema(description = "DB Route ID", example = "10")
+    private Long routeId;
 
     @Schema(description = "총 소요 시간 (분)", example = "42")
     private int totalTime;
@@ -28,6 +30,18 @@ public class SubwayRoute implements TrafficResponse {
     @Schema(description = "ODsay loadLane API의 mapObject 파라미터 값. 지도 폴리라인 조회 시 사용." +
             "만약 값에 0:0@ 이없어도 당황하지 말고 그대로 전달하시면됩니다", example = "0:0@3:2:310:329@2:2:200:215")
     private String mapObj;
+
+    public SubwayRoute(int totalTime, int payment, int transferCount,
+                       int subwayTransitCount, int totalWalk,
+                       List<RouteSegment> segments, String mapObj) {
+        this.totalTime = totalTime;
+        this.payment = payment;
+        this.transferCount = transferCount;
+        this.subwayTransitCount = subwayTransitCount;
+        this.totalWalk = totalWalk;
+        this.segments = segments;
+        this.mapObj = mapObj;
+    }
 
     @Schema(description = "지하철 탑승 구간 세부 정보 (trafficType = 1)")
     @Data

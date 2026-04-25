@@ -12,13 +12,13 @@ import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
-public class NullRouteTicketReader implements ItemStreamReader<Long> {
+public class AlarmNeedCheckReader implements ItemStreamReader<Long> {
 
     private final RouteTicketRepo routeTicketRepo;
     private final int pageSize;
     private final LocalDateTime updateAt;
 
-    private static final String LAST_ID_KEY = "nullRouteLastId";
+    private static final String LAST_ID_KEY = "alarmNeedCheckLastId";
 
     private Iterator<Long> buffer = Collections.emptyIterator();
     private Long lastId;
@@ -31,7 +31,7 @@ public class NullRouteTicketReader implements ItemStreamReader<Long> {
         maxId = executionContext.getLong("maxId");
 
         if (isEmpty()) {
-            log.info("[NullRouteTicketReader] 조회 대상 없음 (minId={}, maxId={}), 스텝을 건너뜁니다.", minId, maxId);
+            log.info("[AlarmNeedCheckReader] 경로 업데이트 후 체크 필요한 알람 없음 (minId={}, maxId={}), 스텝을 건너뜁니다.", minId, maxId);
             return;
         }
 
@@ -52,7 +52,7 @@ public class NullRouteTicketReader implements ItemStreamReader<Long> {
         if (isEmpty()) return null;
 
         if (!buffer.hasNext()) {
-            List<Long> page = routeTicketRepo.fetchNullRouteTicketPage(minId, maxId, lastId, pageSize, updateAt);
+            List<Long> page = routeTicketRepo.fetchAlarmNeedCheckPage(minId, maxId, lastId, pageSize, updateAt);
             if (page.isEmpty()) return null;
             lastId = page.get(page.size() - 1);
             buffer = page.iterator();
