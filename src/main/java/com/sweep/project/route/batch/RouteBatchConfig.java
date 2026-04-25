@@ -41,11 +41,11 @@ public class RouteBatchConfig {
     // ── Job ───────────────────────────────────────────────────────────────────
 
     @Bean
-    public Job routeUpdateJob(Step masterStep, Step nullRouteMasterStep) {
+    public Job routeUpdateJob(Step masterStep, Step alarmNeedCheckMasterStep) {
         return new JobBuilder("routeUpdateJob", jobRepository)
                 .listener(updateAtListener())
                 .start(masterStep)
-                .next(nullRouteMasterStep)
+                .next(alarmNeedCheckMasterStep)
                 .build();
     }
 
@@ -111,48 +111,48 @@ public class RouteBatchConfig {
         return new ItemWriter(trafficRouteStragy, objectMapper, routeTicketRepo, updateAt);
     }
 
-    // ── NullRouteCheck master step (partitioner) ──────────────────────────────
+    // ── AlarmNeedCheck master step (경로 갱신 후 알람 체크 필요 감지) ───────────
 
     @Bean
-    public Step nullRouteMasterStep(Step nullRouteSlaveStep, Partitioner nullRoutePartitioner) {
-        return new StepBuilder("nullRouteMasterStep", jobRepository)
-                .partitioner("nullRouteSlaveStep", nullRoutePartitioner)
-                .step(nullRouteSlaveStep)
+    public Step alarmNeedCheckMasterStep(Step alarmNeedCheckSlaveStep, Partitioner alarmNeedCheckPartitioner) {
+        return new StepBuilder("alarmNeedCheckMasterStep", jobRepository)
+                .partitioner("alarmNeedCheckSlaveStep", alarmNeedCheckPartitioner)
+                .step(alarmNeedCheckSlaveStep)
                 .gridSize(GRID_SIZE)
                 .build();
     }
 
-    // ── NullRouteCheck slave step (chunk-oriented) ────────────────────────────
+    // ── AlarmNeedCheck slave step (chunk-oriented) ────────────────────────────
 
     @Bean
-    public Step nullRouteSlaveStep(NullRouteTicketReader nullRouteTicketReader,
-                                   NullRouteTicketWriter nullRouteTicketWriter) {
-        return new StepBuilder("nullRouteSlaveStep", jobRepository)
+    public Step alarmNeedCheckSlaveStep(AlarmNeedCheckReader alarmNeedCheckReader,
+                                        AlarmNeedCheckWriter alarmNeedCheckWriter) {
+        return new StepBuilder("alarmNeedCheckSlaveStep", jobRepository)
                 .<Long, Long>chunk(CHUNK_SIZE, transactionManager)
-                .reader(nullRouteTicketReader)
-                .writer(nullRouteTicketWriter)
+                .reader(alarmNeedCheckReader)
+                .writer(alarmNeedCheckWriter)
                 .build();
     }
 
-    // ── NullRouteCheck beans ──────────────────────────────────────────────────
+    // ── AlarmNeedCheck beans ──────────────────────────────────────────────────
 
     @Bean
     @JobScope
-    public Partitioner nullRoutePartitioner(
+    public Partitioner alarmNeedCheckPartitioner(
             @Value("#{jobExecutionContext['updateAt']}") LocalDateTime updateAt) {
-        return new NullRoutePartitioner(routeTicketRepo, updateAt);
+        return new AlarmNeedCheckPartitioner(routeTicketRepo, updateAt);
     }
 
     @Bean
     @StepScope
-    public NullRouteTicketReader nullRouteTicketReader(
+    public AlarmNeedCheckReader alarmNeedCheckReader(
             @Value("#{jobExecutionContext['updateAt']}") LocalDateTime updateAt) {
-        return new NullRouteTicketReader(routeTicketRepo, CHUNK_SIZE, updateAt);
+        return new AlarmNeedCheckReader(routeTicketRepo, CHUNK_SIZE, updateAt);
     }
 
     @Bean
     @StepScope
-    public NullRouteTicketWriter nullRouteTicketWriter() {
-        return new NullRouteTicketWriter(routeTicketRepo,fcmSendService);
+    public AlarmNeedCheckWriter alarmNeedCheckWriter() {
+        return new AlarmNeedCheckWriter(routeTicketRepo, fcmSendService);
     }
 }

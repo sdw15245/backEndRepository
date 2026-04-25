@@ -13,25 +13,25 @@ import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
-public class NullRoutePartitioner implements Partitioner {
+public class AlarmNeedCheckPartitioner implements Partitioner {
 
     private final RouteTicketRepo routeTicketRepo;
     private final LocalDateTime updateAt;
 
     @Override
     public Map<String, ExecutionContext> partition(int gridSize) {
-        List<Long> ids = routeTicketRepo.getNullRouteTicketMinMaxId(updateAt);
+        List<Long> ids = routeTicketRepo.getAlarmNeedCheckMinMaxId(updateAt);
         Map<String, ExecutionContext> result = new LinkedHashMap<>();
 
         Long minId = ids.get(0);
         Long maxId = ids.get(1);
 
         if (minId == null || maxId == null) {
-            log.info("[NullRoutePartitioner] null route_data 대상 없음, 빈 파티션 반환");
+            log.info("[AlarmNeedCheckPartitioner] 경로 업데이트 후 체크 필요한 알람 없음, 빈 파티션 반환");
             ExecutionContext ctx = new ExecutionContext();
             ctx.putLong("minId", 0L);
             ctx.putLong("maxId", -1L);
-            result.put("nullRouteCheck0", ctx);
+            result.put("alarmNeedCheck0", ctx);
             return result;
         }
 
@@ -47,7 +47,7 @@ public class NullRoutePartitioner implements Partitioner {
             ExecutionContext ctx = new ExecutionContext();
             ctx.putLong("minId", min);
             ctx.putLong("maxId", max);
-            result.put("nullRouteCheck" + i, ctx);
+            result.put("alarmNeedCheck" + i, ctx);
         }
         return result;
     }

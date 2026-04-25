@@ -12,7 +12,6 @@ import java.util.List;
 
 import static com.sweep.project.alarm.domain.QAlarm.alarm;
 import static com.sweep.project.route.domain.QRoute.route;
-import static com.sweep.project.route.domain.QRouteTicket.routeTicket;
 
 /**
  * 알람 배치 전용 QueryDSL 레포지토리.
@@ -20,10 +19,9 @@ import static com.sweep.project.route.domain.QRouteTicket.routeTicket;
  * <p>조인 구조
  * <pre>
  *   alarm
- *     └─ join alarm.routeTicket  (RouteTicket)
- *          └─ join routeTicket.route  (Route)
+ *     └─ join alarm.route  (Route)
  * </pre>
- * 조건: alarm.deleted = false AND routeTicket.deleted = false
+ * 조건: alarm.deleted = false
  */
 @Repository
 @RequiredArgsConstructor
@@ -40,10 +38,8 @@ public class AlarmTicketRepo {
         Tuple tuple = jpaQueryFactory
                 .select(alarm.alarmId.min(), alarm.alarmId.max())
                 .from(alarm)
-                .join(alarm.routeTicket, routeTicket)
                 .where(alarm.deleted.isFalse()
                         .and(alarm.isLoop.isTrue())
-                        .and(routeTicket.deleted.isFalse())
                         .and(alarm.day.contains(todayKo)))
                 .fetchOne();
 
@@ -70,17 +66,15 @@ public class AlarmTicketRepo {
         return jpaQueryFactory
                 .select(Projections.constructor(AlarmBatchDto.class,
                         alarm.alarmId,
-                        routeTicket.member.id,
+                        alarm.member.id,
                         alarm.prepareTime,
                         alarm.interval,
                         alarm.arrivalTime,
                         alarm.day,
                         route.totalTime))
                 .from(alarm)
-                .join(alarm.routeTicket, routeTicket)
-                .join(routeTicket.route, route)
+                .join(alarm.route, route)
                 .where(alarm.deleted.isFalse()
-                        .and(routeTicket.deleted.isFalse())
                         .and(alarm.day.isNull()
                                 .or(alarm.day.isEmpty())
                                 .or(alarm.day.contains(todayKo)))

@@ -2,11 +2,10 @@ package com.sweep.project.route.domain;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mysema.commons.lang.Assert;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.group.GroupBy;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.sweep.project.alarm.domain.QAlarm;
 import com.sweep.project.fcm.domain.QFcmToken;
 import com.sweep.project.route.batch.RouteBatchDto;
 import com.sweep.project.route.dto.NeedCheckAlertDto;
@@ -24,11 +23,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import static com.sweep.project.alarm.domain.QAlarm.*;
+import static com.sweep.project.alarm.domain.QAlarm.alarm;
 import static com.sweep.project.fcm.domain.QFcmToken.fcmToken;
-import static com.sweep.project.route.domain.QRoute.*;
-import static com.sweep.project.route.domain.QRouteTicket.*;
+import static com.sweep.project.route.domain.QRoute.route;
 
 @Repository
 @RequiredArgsConstructor
@@ -37,16 +36,15 @@ public class RouteTicketRepo {
 
     private final JPAQueryFactory jpaQueryFactory;
     private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     public List<Long> getMinMaxId(LocalDateTime now) {
         LocalDateTime twoMonthsAgo = now.minusMonths(2).toLocalDate().atStartOfDay();
 
         Tuple tuple = jpaQueryFactory
                 .select(route.id.min(), route.id.max())
-                .from(routeTicket)
-                .join(route).on(route.eq(routeTicket.route))
-                .where(routeTicket.deleted.isFalse()
-                        .and(routeTicket.createdAt.before(twoMonthsAgo)))
+                .from(route)
+                .where(route.createDate.before(twoMonthsAgo))
                 .fetchOne();
 
         if (tuple == null) {
@@ -64,8 +62,6 @@ public class RouteTicketRepo {
                         route.startY,
                         route.endX,
                         route.endY))
-                .from(routeTicket)
-                .join(route).on(route.eq(routeTicket.route))
                 .where(route.id.between(minId, maxId)
                         .and(route.id.gt(lastId)))
                 .orderBy(route.id.asc())
@@ -73,26 +69,19 @@ public class RouteTicketRepo {
                 .fetch();
     }
 
-    private final JdbcTemplate jdbcTemplate;
-
-    public void updateRouteBatch(Map<Long,String> id_JsonMap, LocalDateTime updateAt) {
+    public void updateRouteBatch(Map<Long, String> id_JsonMap, LocalDateTime updateAt) {
 
         String sql = "UPDATE route SET route_data = ?, total_time = ?, create_date = ? WHERE id = ?";
         Timestamp ts = Timestamp.valueOf(updateAt);
 
         List<Map.Entry<Long, String>> entries = new ArrayList<>(id_JsonMap.entrySet());
 
-        //오디세이에서 불러오는 결과는 확정되게 3개를 불러오는게 아니므로
-        //만약 route id값에 비해서 오디세이에서 불러온값이 적다면은 빈칸은 null처리가 필요
-        //만약 null처리된 route를 참조하는 routeticket이 존재한다면  남아잇는 애들중에서 업데이트하게하고
-        //null처리 된값은 그대로 남기는 것이 필요할듯-->나중에 갯수가 늘어날수잇으니.
-
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {
                 String json = entries.get(i).getValue();
-                ps.setString(1, json);  // null이면 DB NULL로 저장
-                ps.setObject(2, parseTotalTime(json));  // null이면 DB NULL로 저장
+                ps.setString(1, json);
+                ps.setObject(2, parseTotalTime(json));
                 ps.setTimestamp(3, ts);
                 ps.setLong(4, entries.get(i).getKey());
             }
@@ -116,66 +105,59 @@ public class RouteTicketRepo {
     // ── NullRouteCheck step 전용 ───────────────────────────────────────────────
 
     /**
-     * 이번 배치(updateAt)에서 route_data가 null로 업데이트된 route를 참조하는
-     * 삭제되지 않은 route_ticket의 id min/max를 반환한다.
-     */
-    public List<Long> getNullRouteTicketMinMaxId(LocalDateTime updateAt) {
-        com.querydsl.core.Tuple tuple = jpaQueryFactory
-                .select(routeTicket.id.min(), routeTicket.id.max())
-                .from(routeTicket)
-                .join(routeTicket.route, route)
-                .where(route.routeData.isNull()
-                        .and(route.createDate.eq(updateAt))
-                        .and(routeTicket.deleted.isFalse()))
+     * route가 업데이트 된 alaram id들만 추출.
+     *
+     * */
+    public List<Long> getAlarmNeedCheckMinMaxId(LocalDateTime updateAt) {
+        Tuple tuple = jpaQueryFactory
+                .select(alarm.alarmId.min(), alarm.alarmId.max())
+                .from(alarm)
+                .join(alarm.route, route)
+                .where(route.createDate.eq(updateAt)
+                        .and(alarm.deleted.isFalse()))
                 .fetchOne();
 
         if (tuple == null) {
             return Arrays.asList(null, null);
         }
-        return Arrays.asList(tuple.get(routeTicket.id.min()), tuple.get(routeTicket.id.max()));
+        return Arrays.asList(tuple.get(alarm.alarmId.min()), tuple.get(alarm.alarmId.max()));
     }
 
     /**
-     * 커서 기반 페이지네이션으로 대상 route_ticket id 목록을 스트리밍한다.
-     */
-    public List<Long> fetchNullRouteTicketPage(Long minId, Long maxId, Long lastId,
-                                               int pageSize, LocalDateTime updateAt) {
+     * 정해진 범위 내의 alarm id값들만 추출.
+     *
+     * */
+    public List<Long> fetchAlarmNeedCheckPage(Long minId, Long maxId, Long lastId,
+                                         int pageSize, LocalDateTime updateAt) {
         return jpaQueryFactory
-                .select(routeTicket.id)
-                .from(routeTicket)
-                .join(routeTicket.route, route)
-                .where(route.routeData.isNull()
-                        .and(route.createDate.eq(updateAt))
-                        .and(routeTicket.deleted.isFalse())
-                        .and(routeTicket.id.between(minId, maxId))
-                        .and(routeTicket.id.gt(lastId)))
-                .orderBy(routeTicket.id.asc())
+                .select(alarm.alarmId)
+                .from(alarm)
+                .join(alarm.route, route)
+                .where(alarm.alarmId.between(minId, maxId)
+                        .and(alarm.alarmId.gt(lastId)))
+                .orderBy(alarm.alarmId.asc())
                 .limit(pageSize)
                 .fetch();
     }
 
+    /**
+     * 추출된 알람들과 연관된 fcm token들 추출
+     *
+     * */
+    public List<NeedCheckAlertDto> getFcmTokenFromAlarm(List<? extends Long> ids) {
+        Map<Long, List<String>> grouped = jpaQueryFactory
+                .from(alarm)
+                .join(fcmToken).on(fcmToken.memberId.eq(alarm.member.id))
+                .where(alarm.alarmId.in(ids))
+                .transform(GroupBy.groupBy(alarm.alarmId).as(GroupBy.list(fcmToken.token)));
 
-    public List<NeedCheckAlertDto> getFcmTokenFromRouteTicket(List<? extends Long>  ids){
-        return jpaQueryFactory.select(
-                Projections.constructor(NeedCheckAlertDto.class,
-                        fcmToken.token
-                        ,alarm.alarmId)
-                )
-                .from(routeTicket)
-                .join(fcmToken)
-                .on(fcmToken.memberId.eq(routeTicket.member.id))
-                .join(alarm)
-                .on(alarm.routeTicket.eq(routeTicket))
-                .where(routeTicket.id.in(ids))
-                .fetch();
+        return grouped.entrySet().stream()
+                .map(e -> new NeedCheckAlertDto(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
     }
 
-
-    /**
-     * route_ticket의 need_check를 true로 일괄 업데이트한다.
-     */
     public void updateNeedCheckBatch(List<? extends Long> ids) {
-        String sql = "UPDATE route_ticket SET need_check = true WHERE id = ?";
+        String sql = "UPDATE alarm SET need_check = true WHERE alarm_id = ?";
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps, int i) throws SQLException {

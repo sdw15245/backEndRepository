@@ -50,8 +50,8 @@ public class AlarmController {
     @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
             required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @PostMapping
-    public ApiResponseUtil<Alarm> createAlarm(@Valid @RequestBody AlarmCreateRequest request) {
-        Alarm alarm = alarmService.createAlarm(request);
+    public ApiResponseUtil<AlarmDetailResponse> createAlarm(@Valid @RequestBody AlarmCreateRequest request) {
+        AlarmDetailResponse alarm = alarmService.createAlarm(request);
         return ApiResponseUtil.SuccessApiResponse("알람 생성 성공", alarm);
     }
 
@@ -78,8 +78,7 @@ public class AlarmController {
             summary = "알람 상세 조회",
             description = """
                     특정 알람의 상세 정보를 조회합니다.
-                    - 알람 기본 정보(반복 여부, 요일, 출발/도착 시각, 준비 시간, 간격)
-                    - 연결된 RouteTicket 정보(티켓 ID, 실시간 확인 필요 여부, 생성 시각)
+                    - 알람 기본 정보(반복 여부, 요일, 출발/도착 시각, 준비 시간, 간격, needCheck, 생성 시각)
                     - 연결된 Route 정보(경로 ID, 탐색 유형, 출발·도착 좌표, 총 소요 시간, 경로 원문 JSON)
                     를 함께 반환합니다.
                     """

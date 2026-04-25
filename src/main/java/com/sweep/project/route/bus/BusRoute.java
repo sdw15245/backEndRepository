@@ -6,13 +6,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Schema(description = "버스 전용 경로 정보 (ODsay pathType=2)")
 @Data
-@AllArgsConstructor
 public class BusRoute implements TrafficResponse {
+
+    @Schema(description = "DB Route ID", example = "10")
+    private Long routeId;
 
     @Schema(description = "총 소요 시간 (분)", example = "38")
     private int totalTime;
@@ -29,6 +30,18 @@ public class BusRoute implements TrafficResponse {
     @Schema(description = "ODsay loadLane API의 mapObject 파라미터 값. 지도 폴리라인 조회 시 사용.만약 값에 0:0@ 이없어도 당황하지 말고 그대로 전달하시면됩니다"
             , example = "0:0@12018:1:5:22")
     private String mapObj;
+
+    public BusRoute(int totalTime, int payment, int transferCount,
+                    int busTransitCount, int totalWalk,
+                    List<RouteSegment> segments, String mapObj) {
+        this.totalTime = totalTime;
+        this.payment = payment;
+        this.transferCount = transferCount;
+        this.busTransitCount = busTransitCount;
+        this.totalWalk = totalWalk;
+        this.segments = segments;
+        this.mapObj = mapObj;
+    }
 
     @Schema(description = "버스 탑승 구간 세부 정보 (trafficType = 2)")
     @Data

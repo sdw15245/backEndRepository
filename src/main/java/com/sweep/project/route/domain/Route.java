@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * 경로 검색 결과 스냅샷.
- * Member 와의 연관은 {@link RouteTicket} 을 통해 맺어진다.
+ * Member 와의 연관은 {@link Alarm} 을 통해 맺어진다.
  * 좌표는 소수점 4자리 반올림 후 저장한다 (Redis 키와 동일).
  */
 @Entity
