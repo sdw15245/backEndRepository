@@ -2,6 +2,7 @@ package com.sweep.project.route;
 
 import com.sweep.project.route.domain.PathSearchType;
 import com.sweep.project.route.dto.RequestRouteDto;
+import com.sweep.project.util.OnBoardInfoAop;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +46,7 @@ public class TrafficRouteStragy {
      * @param routes             {@link #getRoutes}로 얻은 경로 목록
      * @return 각 경로에 대한 BoardingInfo 리스트
      */
+    @OnBoardInfoAop
     public List<BoardingInfo> getBoardingInfo(PathSearchType pathSearchType,
                                               LocalDateTime desiredArrivalTime,
                                               List<? extends TrafficResponse> routes) {
