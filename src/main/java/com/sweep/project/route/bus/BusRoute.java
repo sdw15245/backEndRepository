@@ -5,11 +5,13 @@ import com.sweep.project.route.TrafficResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Schema(description = "버스 전용 경로 정보 (ODsay pathType=2)")
 @Data
+@NoArgsConstructor
 public class BusRoute implements TrafficResponse {
 
     @Schema(description = "DB Route ID", example = "10")
@@ -46,6 +48,7 @@ public class BusRoute implements TrafficResponse {
     @Schema(description = "버스 탑승 구간 세부 정보 (trafficType = 2)")
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class BusSegment implements RouteSegment {
 
         @Schema(description = "버스 번호", example = "405")

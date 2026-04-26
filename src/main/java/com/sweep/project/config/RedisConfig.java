@@ -63,6 +63,10 @@ public class RedisConfig {
      * Redis 직렬화 전용 ObjectMapper.
      * JavaTimeModule 포함 → LocalTime/LocalDateTime 을 ISO 문자열로 직렬화한다.
      */
+    /**
+     * todo
+     * 직렬과 문제탐구 trafficresponse 인터페이스를 redis에 저장시 역직/직렬화에서 문제가발생
+     * */
     @Bean
     @Qualifier("redisObjectMapper")
     public ObjectMapper redisObjectMapper() {
