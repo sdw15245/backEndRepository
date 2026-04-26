@@ -7,7 +7,6 @@ import com.sweep.project.route.dto.RequestRouteDto;
 import com.sweep.project.route.mixed.MixedBoardingInfo;
 import com.sweep.project.route.mixed.SegmentBoardingInfo;
 import com.sweep.project.util.GeoLocationCache;
-import com.sweep.project.util.OnBoardInfoAop;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -62,7 +61,6 @@ public class SubwayOdsayService extends AbstractRouteSearch {
      * @param route SubwayRoute 타입이어야 한다.
      * @return MixedBoardingInfo – segmentBoardingInfos 에 구간별 탑승 정보가 순서대로 담긴다.
      */
-    @OnBoardInfoAop
     @Override
     public MixedBoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route) {
         SubwayRoute subwayRoute = (SubwayRoute) route;
