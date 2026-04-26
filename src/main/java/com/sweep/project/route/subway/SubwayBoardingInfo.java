@@ -4,6 +4,7 @@ import com.sweep.project.route.BoardingInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
  */
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 @Schema(description = "지하철 탑승 정보")
 public class SubwayBoardingInfo implements BoardingInfo {
 
@@ -34,6 +36,7 @@ public class SubwayBoardingInfo implements BoardingInfo {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     @Schema(description = "탑승 가능 열차 정보")
     public static class TrainSchedule {
 
