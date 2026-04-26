@@ -114,22 +114,29 @@ public class RedisGeoCacheAop {
             @SuppressWarnings("unchecked")
             List<TrafficResponse> result = (List<TrafficResponse>) joinPoint.proceed();
 
+            log.info("size:{}",result.size());
+
             List<String> routeJsonList = result.stream()
                     .map(this::serializeQuietly)
                     .collect(Collectors.toList());
+            routeJsonList.stream().forEach(x->{
+                log.info("data:{}",x);
+            });
 
             // DB 저장
             List<Long> routeIds = routeDbService.saveAll(type, startLon, startLat, endLon, endLat, routeJsonList);
             log.info("[GeoCache] DB 저장 완료 routeIds={} type={}", routeIds, type);
+
 
             // routeId 주입 (result 와 routeIds 는 인덱스 정렬)
             for (int i = 0; i < result.size() && i < routeIds.size(); i++) {
                 result.get(i).setRouteId(routeIds.get(i));
             }
 
+
+
             // Redis 캐싱
             routeRedisService.saveIfAbsent(type, startLat, startLon, endLat, endLon, routeIds, routeJsonList);
-
             return result;
 
         } finally {
