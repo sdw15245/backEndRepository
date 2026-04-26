@@ -147,4 +147,13 @@ public class AlarmController {
         alarmService.deleteAlarm(alarmId);
         return ApiResponseUtil.SuccessApiResponse("알람 삭제 성공", null);
     }
+
+    @Operation(summary = "알람 변경사항 체크", description = "특정 알람의 변경사항을 유저가 보았음을 업데이트 합니다. fire and forget 방식으로" +
+            "프론트는 해당 api 로 request만 보내고 잊어버리면 됩니다.")
+    @PostMapping("/needCheck/{alarmId}")
+    public void needCheckUpdateWithFireAndForget(
+            @Parameter(description = "변경사항 확인한 알람 ID", required = true, example = "1")
+            @PathVariable Long alarmId){
+            alarmService.fireAndForgetUpdate(alarmId);
+    }
 }

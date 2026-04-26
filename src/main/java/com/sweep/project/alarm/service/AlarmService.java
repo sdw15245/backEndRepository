@@ -94,6 +94,12 @@ public class AlarmService {
         }
     }
 
+    public void fireAndForgetUpdate(Long alarmId){
+        Alarm alarm = alarmRepository.findById(alarmId)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
+        alarm.updateNeedCheck();
+    }
+
     public void deleteAlarm(Long alarmId) {
         Alarm alarm = alarmRepository.findById(alarmId)
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));

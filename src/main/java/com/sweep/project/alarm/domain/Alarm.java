@@ -61,8 +61,8 @@ public class Alarm {
     // ── 변경 메서드 ────────────────────────────────────────────────────────────
 
     public void updateAlarm(Route route, LocalDateTime arrivalTime, LocalDateTime startTime,
-                            Integer prepareTime, Integer interval,
-                            Boolean isLoop, String day) {
+                         Integer prepareTime, Integer interval,
+                         Boolean isLoop, String day) {
         this.route = route;
         this.arrivalTime = arrivalTime;
         this.startTime = startTime;
@@ -77,6 +77,6 @@ public class Alarm {
     }
 
     public void updateNeedCheck() {
-        this.needCheck = !this.needCheck;
+        this.needCheck = false;
     }
 }
