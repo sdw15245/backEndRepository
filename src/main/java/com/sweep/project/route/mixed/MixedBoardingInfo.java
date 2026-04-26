@@ -4,6 +4,7 @@ import com.sweep.project.route.BoardingInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
  */
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 @Schema(description = "복합(버스+지하철) 경로 탑승 정보")
 public class MixedBoardingInfo implements BoardingInfo {
 

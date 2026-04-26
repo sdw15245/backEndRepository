@@ -5,6 +5,7 @@ import com.sweep.project.route.subway.SubwayBoardingInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.List;
  */
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 @Schema(description = "복합 경로의 단일 교통 수단 구간 탑승 정보")
 public class SegmentBoardingInfo {
 
