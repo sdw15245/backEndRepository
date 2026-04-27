@@ -42,85 +42,60 @@ public class SubwayOdsayService extends AbstractRouteSearch {
         return parseSubwayRoutes(response);
     }
 
-    /**
-     * subwayPathSchedule API를 활용해 지하철 구간 탑승 정보를 계산한다.
-     *
-     * <ol>
-     *   <li>route 내 첫 번째 지하철 구간의 startID(SID)와 마지막 지하철 구간의 endId(EID) 추출</li>
-     *   <li>subwayPathSchedule API 호출 (MODE=2: 도착 시각 기준)</li>
-     *   <li>pathType=1(최단 시간) 경로 선택</li>
-     *   <li>각 subPath에서 다음 정보 추출:
-     *     <ul>
-     *       <li>첫 탑승역 출발 시각(startDepartTime) → latestBoardingTime</li>
-     *       <li>환승 도보 소요 시간(sectionTime of walk subPath) → transferWalkMinutes</li>
-     *       <li>환승 열차 도착 시각(startArriveTime) → trainArrivalTime</li>
-     *     </ul>
-     *   </li>
-     * </ol>
-     *
-     * @param route SubwayRoute 타입이어야 한다.
-     * @return MixedBoardingInfo – segmentBoardingInfos 에 구간별 탑승 정보가 순서대로 담긴다.
-     */
     @Override
     public MixedBoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route) {
         SubwayRoute subwayRoute = (SubwayRoute) route;
 
-        // 1. 지하철 구간 목록 추출
-        List<SubwayRoute.SubwaySegment> subwaySegments = subwayRoute.getSegments().stream()
-                .filter(s -> s instanceof SubwayRoute.SubwaySegment)
-                .map(s -> (SubwayRoute.SubwaySegment) s)
-                .collect(Collectors.toList());
+        // 최초 출발 시각 = desiredArrivalTime - totalTime
+        LocalDateTime currentDateTime = desiredArrivalTime.minusMinutes(subwayRoute.getTotalTime());
+        LocalTime recommendedDepartureTime = currentDateTime.toLocalTime();
 
-        if (subwaySegments.isEmpty()) {
-            throw new IllegalArgumentException("해당 경로에 지하철 구간이 존재하지 않습니다.");
-        }
-
-        // 2. SID = 첫 번째 지하철 구간 출발역, EID = 마지막 지하철 구간 도착역
-        int sid = subwaySegments.get(0).getStartID();
-        int eid = subwaySegments.get(subwaySegments.size() - 1).getEndId();
-
-        // 3. 요일 코드 결정 (1=평일, 2=토요일, 3=일요일/공휴일)
         int dayCode = switch (desiredArrivalTime.getDayOfWeek()) {
             case SATURDAY -> 2;
             case SUNDAY   -> 3;
             default       -> 1;
         };
 
-        // 4. 희망 도착 시각을 HHmm 형식으로 변환
-        String timeHHmm = desiredArrivalTime.format(DateTimeFormatter.ofPattern("HHmm"));
+        List<SegmentBoardingInfo> segmentBoardingInfos = new ArrayList<>();
+        boolean firstSubwayFound = false;
+        int pendingWalkMinutes = 0;
+        LocalTime pendingPlatformArrival = null;
 
-        // 5. subwayPathSchedule API 호출
-        SubwayPathScheduleResponse scheduleResponse = callScheduleApi(sid, eid, dayCode, timeHHmm);
+        for (RouteSegment seg : subwayRoute.getSegments()) {
 
-        if (scheduleResponse == null
-                || scheduleResponse.getResult() == null
-                || scheduleResponse.getResult().getPath() == null
-                || scheduleResponse.getResult().getPath().isEmpty()) {
-            throw new IllegalStateException("지하철 경로 시간표 조회에 실패했습니다. SID=" + sid + ", EID=" + eid);
+            if (seg instanceof WalkSegment walkSeg) {
+                // 도보 구간: 소요 시간만큼 currentDateTime 진행
+                pendingWalkMinutes = walkSeg.getSectionTime();
+                currentDateTime = currentDateTime.plusMinutes(walkSeg.getSectionTime());
+                pendingPlatformArrival = currentDateTime.toLocalTime();
+
+            } else if (seg instanceof SubwayRoute.SubwaySegment subwaySeg) {
+                // 탑승역 도착 시각(= currentDateTime)을 출발 기준으로 조회
+                String timeHHmm = currentDateTime.format(DateTimeFormatter.ofPattern("HHmm"));
+                LocalDateTime endStationArrival = currentDateTime.plusMinutes(subwaySeg.getSectionTime());
+
+                SubwayPathScheduleResponse scheduleResponse =
+                        callScheduleApi(subwaySeg.getStartID(), subwaySeg.getEndId(), dayCode, timeHHmm);
+
+                boolean isTransferPoint = firstSubwayFound;
+                firstSubwayFound = true;
+
+                SegmentBoardingInfo segInfo = buildSingleSegmentInfo(
+                        scheduleResponse, subwaySeg, isTransferPoint,
+                        pendingPlatformArrival, pendingWalkMinutes);
+
+                if (segInfo != null) {
+                    segmentBoardingInfos.add(segInfo);
+                }
+
+                currentDateTime = endStationArrival;
+                pendingWalkMinutes = 0;
+                pendingPlatformArrival = null;
+            }
         }
-
-        // 6. 최단 시간 경로(pathType=1) 선택, 없으면 첫 번째 경로 사용
-        SubwayPathScheduleResponse.Path shortestPath = scheduleResponse.getResult().getPath().stream()
-                .filter(p -> p.getPathType() == PATH_TYPE_SHORTEST)
-                .findFirst()
-                .orElse(scheduleResponse.getResult().getPath().get(0));
-
-        // 7. 구간별 탑승 정보 구성
-        List<SegmentBoardingInfo> segmentBoardingInfos = buildSegmentInfos(shortestPath, subwaySegments);
 
         if (segmentBoardingInfos.isEmpty()) {
             throw new IllegalStateException("스케줄 응답에서 지하철 구간 정보를 파싱할 수 없습니다.");
-        }
-
-        // 추천 출발 시각 = info.departureTime (스케줄 기반 실제 출발 시각)
-        LocalTime recommendedDepartureTime = shortestPath.getInfo() != null
-                ? parseHHmmss(shortestPath.getInfo().getDepartureTime())
-                : null;
-        if (recommendedDepartureTime == null) {
-            recommendedDepartureTime = segmentBoardingInfos.get(0).getLatestBoardingTime();
-        }
-        if (recommendedDepartureTime == null) {
-            recommendedDepartureTime = desiredArrivalTime.minusMinutes(subwayRoute.getTotalTime()).toLocalTime();
         }
 
         return new MixedBoardingInfo(recommendedDepartureTime, segmentBoardingInfos);
@@ -128,87 +103,63 @@ public class SubwayOdsayService extends AbstractRouteSearch {
 
     // ── private helpers ──────────────────────────────────────────────────────
 
-    /**
-     * 스케줄 API 응답의 subPath 목록을 순회하며 지하철 구간별 SegmentBoardingInfo를 생성한다.
-     *
-     * <p>실제 API 응답 기준:</p>
-     * <ul>
-     *   <li>환승도보 구간(movingType=2): sectionTime → transferWalkMinutes,
-     *       arrivalTime → 환승 플랫폼 도착 시각(trainArrivalTime으로 저장)</li>
-     *   <li>지하철 구간(movingType=1):
-     *     <ul>
-     *       <li>departureTime (HH:mm:ss) → latestBoardingTime</li>
-     *       <li>laneName → 노선명</li>
-     *     </ul>
-     *   </li>
-     * </ul>
-     */
-    private List<SegmentBoardingInfo> buildSegmentInfos(
-            SubwayPathScheduleResponse.Path path,
-            List<SubwayRoute.SubwaySegment> subwaySegments) {
+    private SegmentBoardingInfo buildSingleSegmentInfo(
+            SubwayPathScheduleResponse scheduleResponse,
+            SubwayRoute.SubwaySegment subwaySeg,
+            boolean isTransferPoint,
+            LocalTime pendingPlatformArrival,
+            int pendingWalkMinutes) {
 
-        List<SegmentBoardingInfo> result = new ArrayList<>();
-        List<SubwayPathScheduleResponse.SubPath> subPaths = path.getSubPath();
-        if (subPaths == null) return result;
-
-        boolean firstSubwayFound = false;
-        int pendingWalkMinutes = 0;
-        LocalTime pendingPlatformArrival = null; // 환승 플랫폼 도착 시각
-        int subwayIdx = 0;
-
-        for (SubwayPathScheduleResponse.SubPath subPath : subPaths) {
-
-            if (subPath.getMovingType() == WALK_MOVING_TYPE) {
-                // 환승 도보 구간: 이동 시간과 플랫폼 도착 시각 보관
-                pendingWalkMinutes = subPath.getSectionTime();
-                pendingPlatformArrival = parseHHmmss(subPath.getArrivalTime());
-                continue;
-            }
-
-            if (subPath.getMovingType() != SUBWAY_MOVING_TYPE) continue;
-
-            boolean isTransferPoint = firstSubwayFound;
-            firstSubwayFound = true;
-
-            // 탑승 시각: 열차가 이 역에서 출발하는 시각 (HH:mm:ss)
-            LocalTime latestBoardingTime = parseHHmmss(subPath.getDepartureTime());
-
-            // 환승 지점: pendingPlatformArrival = 환승 플랫폼 도착 시각 (도보 구간 arrivalTime)
-            LocalTime trainArrivalTime = isTransferPoint ? pendingPlatformArrival : null;
-
-            // 노선명: laneName 직접 필드 우선, 없으면 원본 route 구간에서 보완
-            String lineName = (subPath.getLaneName() != null && !subPath.getLaneName().isBlank())
-                    ? subPath.getLaneName()
-                    : (subwayIdx < subwaySegments.size() ? subwaySegments.get(subwayIdx).getLineName() : "");
-
-            String startStation = subPath.getStartName() != null ? subPath.getStartName() : "";
-
-            // 스케줄 API 응답의 열차 한 편을 TrainSchedule 형태로 래핑
-            List<SubwayBoardingInfo.TrainSchedule> trains = new ArrayList<>();
-            if (latestBoardingTime != null) {
-                String endStation = subPath.getEndName() != null ? subPath.getEndName() : "";
-                trains.add(new SubwayBoardingInfo.TrainSchedule(latestBoardingTime, endStation, 0, 0));
-            }
-
-            result.add(new SegmentBoardingInfo(
-                    TRAFFIC_TYPE_SUBWAY.trafficNumber,
-                    startStation,
-                    lineName,
-                    null, 0, null, 0, 0,
-                    isTransferPoint,
-                    latestBoardingTime,
-                    trains,
-                    new ArrayList<>(),
-                    trainArrivalTime,
-                    pendingWalkMinutes
-            ));
-
-            pendingWalkMinutes = 0;
-            pendingPlatformArrival = null;
-            subwayIdx++;
+        if (scheduleResponse == null
+                || scheduleResponse.getResult() == null
+                || scheduleResponse.getResult().getPath() == null
+                || scheduleResponse.getResult().getPath().isEmpty()) {
+            log.warn("스케줄 응답 없음: SID={}, EID={}", subwaySeg.getStartID(), subwaySeg.getEndId());
+            return null;
         }
 
-        return result;
+        SubwayPathScheduleResponse.Path path = scheduleResponse.getResult().getPath().stream()
+                .filter(p -> p.getPathType() == PATH_TYPE_SHORTEST)
+                .findFirst()
+                .orElse(scheduleResponse.getResult().getPath().get(0));
+
+        if (path.getSubPath() == null) return null;
+
+        SubwayPathScheduleResponse.SubPath subwaySubPath = path.getSubPath().stream()
+                .filter(sp -> sp.getMovingType() == SUBWAY_MOVING_TYPE)
+                .findFirst()
+                .orElse(null);
+
+        if (subwaySubPath == null) return null;
+
+        LocalTime latestBoardingTime = parseHHmmss(subwaySubPath.getDepartureTime());
+        String lineName = (subwaySubPath.getLaneName() != null && !subwaySubPath.getLaneName().isBlank())
+                ? subwaySubPath.getLaneName()
+                : subwaySeg.getLineName();
+        String startStation = subwaySubPath.getStartName() != null
+                ? subwaySubPath.getStartName()
+                : subwaySeg.getStartStation();
+
+        List<SubwayBoardingInfo.TrainSchedule> trains = new ArrayList<>();
+        if (latestBoardingTime != null) {
+            String endStation = subwaySubPath.getEndName() != null
+                    ? subwaySubPath.getEndName()
+                    : subwaySeg.getEndStation();
+            trains.add(new SubwayBoardingInfo.TrainSchedule(latestBoardingTime, endStation, 0, 0));
+        }
+
+        return new SegmentBoardingInfo(
+                TRAFFIC_TYPE_SUBWAY.trafficNumber,
+                startStation,
+                lineName,
+                null, 0, null, 0, 0,
+                isTransferPoint,
+                latestBoardingTime,
+                trains,
+                new ArrayList<>(),
+                isTransferPoint ? pendingPlatformArrival : null,
+                pendingWalkMinutes
+        );
     }
 
     private List<SubwayRoute> parseSubwayRoutes(OdsayRouteResponse response) {
@@ -275,7 +226,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 .queryParam("lang", 0)
                 .queryParam("SID", sid)
                 .queryParam("EID", eid)
-                .queryParam("MODE", 2)       // 2 = 도착 시각 기준 검색
+                .queryParam("MODE", 1)       // 1 = 출발 시각 기준 검색
                 .queryParam("DAY", dayCode)
                 .queryParam("TIME", timeHHmm)
                 .toUriString();
