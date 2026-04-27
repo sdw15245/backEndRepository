@@ -3,7 +3,7 @@ package com.sweep.project.route;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.sweep.project.route.bus.BusRoute;
-import com.sweep.project.route.mixed.MixedRoute;
+import com.sweep.project.route.domain.WalkSegment;
 import com.sweep.project.route.subway.SubwayRoute;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -13,11 +13,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = SubwayRoute.class, name = "subway"),
-        @JsonSubTypes.Type(value = BusRoute.class,    name = "bus"),
-        @JsonSubTypes.Type(value = MixedRoute.class,  name = "mixed")
+        @JsonSubTypes.Type(value = WalkSegment.class,             name = "walk"),
+        @JsonSubTypes.Type(value = SubwayRoute.SubwaySegment.class, name = "subway"),
+        @JsonSubTypes.Type(value = BusRoute.BusSegment.class,      name = "bus")
 })
-@Schema(oneOf = {SubwayRoute.class, BusRoute.class, MixedRoute.class},
+@Schema(oneOf = {WalkSegment.class, SubwayRoute.SubwaySegment.class, BusRoute.BusSegment.class},
         discriminatorProperty = "@type")
 public interface RouteSegment {
     int getTrafficType();
