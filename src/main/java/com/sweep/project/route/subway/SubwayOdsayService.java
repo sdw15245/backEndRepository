@@ -72,23 +72,38 @@ public class SubwayOdsayService extends AbstractRouteSearch {
             } else if (seg instanceof SubwayRoute.SubwaySegment subwaySeg) {
                 // 탑승역 도착 시각(= currentDateTime)을 출발 기준으로 조회
                 String timeHHmm = currentDateTime.format(DateTimeFormatter.ofPattern("HHmm"));
-                LocalDateTime endStationArrival = currentDateTime.plusMinutes(subwaySeg.getSectionTime());
 
                 SubwayPathScheduleResponse scheduleResponse =
                         callScheduleApi(subwaySeg.getStartID(), subwaySeg.getEndId(), dayCode, timeHHmm);
+
+                // 응답에서 지하철 subPath 추출 (departureTime·arrivalTime 사용)
+                SubwayPathScheduleResponse.SubPath subwaySubPath = findSubwaySubPath(scheduleResponse);
 
                 boolean isTransferPoint = firstSubwayFound;
                 firstSubwayFound = true;
 
                 SegmentBoardingInfo segInfo = buildSingleSegmentInfo(
-                        scheduleResponse, subwaySeg, isTransferPoint,
+                        subwaySubPath, subwaySeg, isTransferPoint,
                         pendingPlatformArrival, pendingWalkMinutes);
 
                 if (segInfo != null) {
                     segmentBoardingInfos.add(segInfo);
                 }
 
-                currentDateTime = endStationArrival;
+                // arrivalTime 기준으로 currentDateTime 갱신 (없으면 sectionTime 폴백)
+                if (subwaySubPath != null) {
+                    LocalTime arrivalTime = parseHHmmss(subwaySubPath.getArrivalTime());
+                    if (arrivalTime != null) {
+                        LocalDateTime next = currentDateTime.toLocalDate().atTime(arrivalTime);
+                        if (!next.isAfter(currentDateTime)) next = next.plusDays(1);
+                        currentDateTime = next;
+                    } else {
+                        currentDateTime = currentDateTime.plusMinutes(subwaySeg.getSectionTime());
+                    }
+                } else {
+                    currentDateTime = currentDateTime.plusMinutes(subwaySeg.getSectionTime());
+                }
+
                 pendingWalkMinutes = 0;
                 pendingPlatformArrival = null;
             }
@@ -103,34 +118,40 @@ public class SubwayOdsayService extends AbstractRouteSearch {
 
     // ── private helpers ──────────────────────────────────────────────────────
 
+    /** 스케줄 응답에서 pathType=1 경로의 첫 번째 지하철 subPath를 반환한다. */
+    private SubwayPathScheduleResponse.SubPath findSubwaySubPath(SubwayPathScheduleResponse scheduleResponse) {
+        if (scheduleResponse == null
+                || scheduleResponse.getResult() == null
+                || scheduleResponse.getResult().getPath() == null
+                || scheduleResponse.getResult().getPath().isEmpty()) {
+            return null;
+        }
+        SubwayPathScheduleResponse.Path path = scheduleResponse.getResult().getPath().stream()
+                .filter(p -> p.getPathType() == PATH_TYPE_SHORTEST)
+                .findFirst()
+                .orElse(scheduleResponse.getResult().getPath().get(0));
+        if (path.getSubPath() == null) return null;
+        return path.getSubPath().stream()
+                .filter(sp -> sp.getMovingType() == SUBWAY_MOVING_TYPE)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * 이미 추출된 subwaySubPath를 이용해 SegmentBoardingInfo를 생성한다.
+     * departureTime → latestBoardingTime, arrivalTime은 호출부에서 currentDateTime 갱신에 사용된다.
+     */
     private SegmentBoardingInfo buildSingleSegmentInfo(
-            SubwayPathScheduleResponse scheduleResponse,
+            SubwayPathScheduleResponse.SubPath subwaySubPath,
             SubwayRoute.SubwaySegment subwaySeg,
             boolean isTransferPoint,
             LocalTime pendingPlatformArrival,
             int pendingWalkMinutes) {
 
-        if (scheduleResponse == null
-                || scheduleResponse.getResult() == null
-                || scheduleResponse.getResult().getPath() == null
-                || scheduleResponse.getResult().getPath().isEmpty()) {
-            log.warn("스케줄 응답 없음: SID={}, EID={}", subwaySeg.getStartID(), subwaySeg.getEndId());
+        if (subwaySubPath == null) {
+            log.warn("지하철 subPath 없음: SID={}, EID={}", subwaySeg.getStartID(), subwaySeg.getEndId());
             return null;
         }
-
-        SubwayPathScheduleResponse.Path path = scheduleResponse.getResult().getPath().stream()
-                .filter(p -> p.getPathType() == PATH_TYPE_SHORTEST)
-                .findFirst()
-                .orElse(scheduleResponse.getResult().getPath().get(0));
-
-        if (path.getSubPath() == null) return null;
-
-        SubwayPathScheduleResponse.SubPath subwaySubPath = path.getSubPath().stream()
-                .filter(sp -> sp.getMovingType() == SUBWAY_MOVING_TYPE)
-                .findFirst()
-                .orElse(null);
-
-        if (subwaySubPath == null) return null;
 
         LocalTime latestBoardingTime = parseHHmmss(subwaySubPath.getDepartureTime());
         String lineName = (subwaySubPath.getLaneName() != null && !subwaySubPath.getLaneName().isBlank())
