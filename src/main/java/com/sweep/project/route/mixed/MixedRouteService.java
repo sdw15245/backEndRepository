@@ -233,7 +233,8 @@ public class MixedRouteService extends AbstractRouteSearch {
                 info.getBusTransitCount(),
                 info.getSubwayTransitCount(),
                 info.getTotalWalk(),
-                segments
+                segments,
+                info.getMapObj() != null ? info.getMapObj() : ""
         );
     }
 

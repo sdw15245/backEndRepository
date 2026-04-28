@@ -4,6 +4,7 @@ import com.sweep.project.route.BoardingInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.List;
  */
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class BusBoardingInfo implements BoardingInfo {
 
 
@@ -50,6 +52,7 @@ public class BusBoardingInfo implements BoardingInfo {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class ArrivingBus {
         @Schema(description = "차량 번호판", example = "서울 70 가 1234")
         private String vehicleNo;

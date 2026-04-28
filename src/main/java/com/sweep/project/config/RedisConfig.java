@@ -1,7 +1,11 @@
 package com.sweep.project.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -61,13 +65,26 @@ public class RedisConfig {
      * Redis 직렬화 전용 ObjectMapper.
      * JavaTimeModule 포함 → LocalTime/LocalDateTime 을 ISO 문자열로 직렬화한다.
      */
+    /**
+     * todo
+     * 직렬과 문제탐구 trafficresponse 인터페이스를 redis에 저장시 역직/직렬화에서 문제가발생
+     * */
     @Bean
     @Qualifier("redisObjectMapper")
     public ObjectMapper redisObjectMapper() {
+        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                .allowIfSubType("com.sweep.project.")
+                .allowIfSubType("java.util.")
+                .allowIfSubType("java.lang.")
+                .build();
+
         return new ObjectMapper()
                 .registerModule(new JavaTimeModule())
-                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
     }
+
 
     @Bean
     public RedissonClient redissonClient(){

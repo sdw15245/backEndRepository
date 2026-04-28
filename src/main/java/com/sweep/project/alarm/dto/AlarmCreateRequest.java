@@ -12,9 +12,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 public record AlarmCreateRequest(
-        @Schema(description = "알람에 연결할 경로 티켓 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull @Positive
-        Long routeTicketId,
 
         @Schema(description = "경로 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull

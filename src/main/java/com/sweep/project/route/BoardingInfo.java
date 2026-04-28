@@ -5,16 +5,15 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.sweep.project.route.bus.BusBoardingInfo;
 import com.sweep.project.route.mixed.MixedBoardingInfo;
 import com.sweep.project.route.subway.SubwayBoardingInfo;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-/**
- * 탑승 정보 공통 마커 인터페이스.
- * SubwayBoardingInfo, BusBoardingInfo, MixedBoardingInfo 가 구현한다.
- */
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = SubwayBoardingInfo.class, name = "subway"),
         @JsonSubTypes.Type(value = BusBoardingInfo.class,    name = "bus"),
         @JsonSubTypes.Type(value = MixedBoardingInfo.class,  name = "mixed")
 })
+@Schema(oneOf = {SubwayBoardingInfo.class, BusBoardingInfo.class, MixedBoardingInfo.class},
+        discriminatorProperty = "@type")
 public interface BoardingInfo {
 }

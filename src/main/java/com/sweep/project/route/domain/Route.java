@@ -4,12 +4,14 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
 /**
  * 경로 검색 결과 스냅샷.
- * Member 와의 연관은 {@link RouteTicket} 을 통해 맺어진다.
+ * Member 와의 연관은 {@link Alarm} 을 통해 맺어진다.
  * 좌표는 소수점 4자리 반올림 후 저장한다 (Redis 키와 동일).
  */
 @Entity
@@ -34,6 +36,7 @@ public class Route {
     private double endY;
 
     /** ODsay API 단일 경로 JSON (TrafficResponse) */
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String routeData;
 

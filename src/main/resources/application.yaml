@@ -43,8 +43,8 @@ spring:
             redirect-uri: "{baseUrl}/{action}/oauth2/code/{registrationId}"
           google:
             client-name: google
-            client-id: asdasd
-            client-secret: asdad
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             scope:
               - email
           kakao:
@@ -96,13 +96,22 @@ api-key:
   odsay: ${ODSAY}
   korea-data-portal: ${KOREA_DATA_PORTAL}
 
+
 bus:
   api:
     arrival:
-      seoul-url: https://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute
-      gbis-url: https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalItemv2
+      seoul-url: http://ws.bus.go.kr/api/rest/arrive/getArrInfoByRoute
+      gbis-url: http://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalItemv2
     station-ord:
-      gbis-url: https://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationListv2
-      seoul-url: https://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute
+      gbis-url: http://apis.data.go.kr/6410000/busrouteservice/v2/getBusRouteStationListv2
+      seoul-url: http://ws.bus.go.kr/api/rest/busRouteInfo/getStaionByRoute
 firebase:
   config-path: ${FIREBASE_TOKEN_PATH}
+
+management:
+  server:
+    port: 9091
+  endpoints:
+    web:
+      exposure:
+        include: "prometheus"

@@ -15,6 +15,7 @@ public class Member {
     private Long id;
     @Column(unique = true)
     private String email;
+    @Enumerated(EnumType.STRING)
     private MemberType memberType;
     private Boolean deleted=false;
 
