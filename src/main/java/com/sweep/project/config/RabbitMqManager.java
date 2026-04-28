@@ -52,6 +52,8 @@ public class RabbitMqManager {
         alarmSetting();
     }
     public void alarmSetting(){
+        final String title = "test1";
+        final String body = "test2";
         Queue actionQueue=createAlramQueue();
         Binding binding= BindingBuilder.bind(actionQueue)
                 .to(createAlarmExchange())
@@ -61,26 +63,28 @@ public class RabbitMqManager {
         ChannelAwareBatchMessageListener messageListener= (ChannelAwareBatchMessageListener) (messages, channel)
                 -> {
             try {
-                List<Message> messages1 = new ArrayList<>();
+                List<Message> messages1 = new ArrayList<>();    // messages1 -> Firebase에 실제로 보낼 메시지들
+                List<RedisMessageDto> metadata = new ArrayList<>(); // metadata -> log 저장에 필요한 정보들 ex) memberId, token
                 messages.stream().forEach(x -> {
                     try {
                         com.sweep.project.redis.RedisMessageDto redisMessageDto= objectMapper.readValue(x.getBody(), RedisMessageDto.class);
                         Message message = Message.builder()
                                 .setToken(redisMessageDto.getToken())
                                 .setNotification(Notification.builder()
-                                        .setTitle("테스팅")
-                                        .setBody("테스팅")
+                                        .setTitle(title)
+                                        .setBody(body)
                                         /*
                                         * 나중에 알람타입에 따라서 보내는 알람도 변경--> fix의경우 notification이아닌 다른 형태의 알람으로
                                         * */
                                         .build())
                                 .build();
                         messages1.add(message);
+                        metadata.add(redisMessageDto);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
                 });
-                fcmSendService.bulkPush(messages1);
+                fcmSendService.bulkPushWithLog(messages1, metadata, title, body);
             }
             catch (Exception e){
                 throw new RuntimeException(e.getMessage());
