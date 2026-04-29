@@ -163,10 +163,8 @@ public class SubwayOdsayService extends AbstractRouteSearch {
 
         List<SubwayBoardingInfo.TrainSchedule> trains = new ArrayList<>();
         if (latestBoardingTime != null) {
-            String endStation = subwaySubPath.getEndName() != null
-                    ? subwaySubPath.getEndName()
-                    : subwaySeg.getEndStation();
-            trains.add(new SubwayBoardingInfo.TrainSchedule(latestBoardingTime, endStation, 0, 0));
+            trains.add(new SubwayBoardingInfo.TrainSchedule(latestBoardingTime,
+                    subwaySubPath.getWayName(), subwaySubPath.getIsExpressLane().equals("Y") ? 1:0, 0));
         }
 
         return new SegmentBoardingInfo(
