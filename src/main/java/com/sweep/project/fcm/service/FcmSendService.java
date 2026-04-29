@@ -6,13 +6,17 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
+import com.sweep.project.fcm.domain.FcmSendLog;
 import com.sweep.project.redis.RedisMessageDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -53,30 +57,36 @@ public class FcmSendService {
 
         try {
             BatchResponse response = firebaseMessaging.sendEach(data);
+            List<SendResponse> sendResponses = response.getResponses();
+            List<FcmSendLog> successLogs = IntStream.range(0, sendResponses.size())
+                    .mapToObj(i -> createSuccessLog(sendResponses.get(i), metadata.get(i), title, body))
+                    .flatMap(Optional::stream)
+                    .toList();
 
-            for (int i = 0; i < response.getResponses().size(); i++) {
-                SendResponse sendResponse = response.getResponses().get(i);
-
-                // 실패한 전송은 조회 이력에 남기지 않음
-                if (!sendResponse.isSuccessful()) {
-                    log.warn("FCM 전송 실패: {}", sendResponse.getException().getMessage());
-                    continue;
-                }
-
-                RedisMessageDto logData = metadata.get(i);
-                fcmSendLogService.saveSuccessLog(
-                        Long.valueOf(logData.getMemberId()),
-                        Long.valueOf(logData.getAlarmId()),
-                        logData.getAlarmType(),
-                        logData.getToken(),
-                        title,
-                        body,
-                        sendResponse.getMessageId()
-                );
-            }
+            fcmSendLogService.saveSuccessLogs(successLogs);
         } catch (FirebaseMessagingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Optional<FcmSendLog> createSuccessLog(SendResponse sendResponse, RedisMessageDto logData,
+                                                  String title, String body) {
+        // 실패한 전송은 조회 이력에 남기지 않음
+        if (!sendResponse.isSuccessful()) {
+            log.warn("FCM 전송 실패: {}", sendResponse.getException().getMessage());
+            return Optional.empty();
+        }
+
+        return Optional.of(FcmSendLog.builder()
+                .memberId(Long.valueOf(logData.getMemberId()))
+                .alarmId(Long.valueOf(logData.getAlarmId()))
+                .alarmType(logData.getAlarmType())
+                .token(logData.getToken())
+                .title(title)
+                .body(body)
+                .firebaseMessageId(sendResponse.getMessageId())
+                .sentAt(LocalDateTime.now())
+                .build());
     }
 }
 

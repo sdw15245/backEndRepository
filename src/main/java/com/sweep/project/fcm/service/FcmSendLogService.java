@@ -33,6 +33,10 @@ public class FcmSendLogService {
                 .build());
     }
 
+    public void saveSuccessLogs(List<FcmSendLog> logs) {
+        fcmSendLogRepository.saveAll(logs);
+    }
+
     @Transactional(readOnly = true)
     public List<FcmSendLogResponse> getDailySuccessLogs(Long memberId, LocalDate date) {
         LocalDateTime start = date.atStartOfDay();
