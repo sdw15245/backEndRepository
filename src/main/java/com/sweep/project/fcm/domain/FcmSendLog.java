@@ -1,7 +1,10 @@
 package com.sweep.project.fcm.domain;
 
+import com.sweep.project.alarm.batch.AlarmType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,7 +28,9 @@ public class FcmSendLog {           // FCM 메시지 전송 성공 이력을 저
 
     private Long alarmId;
 
-    private String alarmType;
+    @Enumerated(EnumType.STRING)
+    private AlarmType alarmType;
+
 
     @Column(nullable = false, columnDefinition = "text")
     private String token;
@@ -41,7 +46,7 @@ public class FcmSendLog {           // FCM 메시지 전송 성공 이력을 저
     private LocalDateTime sentAt;
 
     @Builder
-    public FcmSendLog(Long memberId, Long alarmId, String alarmType, String token,
+    public FcmSendLog(Long memberId, Long alarmId, AlarmType alarmType, String token,
                       String title, String body, String firebaseMessageId,
                       LocalDateTime sentAt) {
         this.memberId = memberId;       // 로그인 회원 ID

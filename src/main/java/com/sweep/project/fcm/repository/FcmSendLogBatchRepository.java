@@ -43,7 +43,7 @@ public class FcmSendLogBatchRepository {        //jdbcTemplate,  FCM 로그 batc
                         ps.setLong(2, log.getAlarmId());
                     }
 
-                    ps.setString(3, log.getAlarmType());
+                    ps.setString(3, log.getAlarmType().name());
                     ps.setString(4, log.getToken());
                     ps.setString(5, log.getTitle());
                     ps.setString(6, log.getBody());

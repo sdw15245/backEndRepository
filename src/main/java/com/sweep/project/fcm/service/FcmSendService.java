@@ -6,6 +6,7 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
 import com.google.firebase.messaging.SendResponse;
+import com.sweep.project.alarm.batch.AlarmType;
 import com.sweep.project.fcm.domain.FcmSendLog;
 import com.sweep.project.redis.RedisMessageDto;
 import lombok.RequiredArgsConstructor;
@@ -80,7 +81,7 @@ public class FcmSendService {
         return Optional.of(FcmSendLog.builder()
                 .memberId(Long.valueOf(logData.getMemberId()))
                 .alarmId(Long.valueOf(logData.getAlarmId()))
-                .alarmType(logData.getAlarmType())
+                .alarmType(AlarmType.valueOf(logData.getAlarmType().toUpperCase()))
                 .token(logData.getToken())
                 .title(title)
                 .body(body)

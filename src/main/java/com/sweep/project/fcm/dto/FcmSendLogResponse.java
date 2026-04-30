@@ -1,5 +1,6 @@
 package com.sweep.project.fcm.dto;
 
+import com.sweep.project.alarm.batch.AlarmType;
 import com.sweep.project.fcm.domain.FcmSendLog;
 
 import java.time.LocalDateTime;
@@ -8,7 +9,7 @@ import java.time.LocalDateTime;
 public record FcmSendLogResponse(
         Long id,
         Long alarmId,
-        String alarmType,
+        AlarmType alarmType,
         String title,
         String body,
         LocalDateTime sentAt
