@@ -18,11 +18,11 @@ public record AlarmUpdateRequest(
 
         @Schema(description = "알림 제목, 수정 안할경우 기존값 전달", example = "친구 약속", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank
-        @Size(max = 50)
+        @Size(max = 30) // 30자
         String title,
 
         @Schema(description = "준비물, 수정 안할경우 기존값 전달", example = "우산")
-        @Size(max = 1000)
+        @Size(max = 200)   //200자
         String checklist,
 
         @Schema(description = "목적지 도착 예정 시각 (ISO 8601), 수정 안할경우 기존값 전달", example = "2024-06-01T09:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
