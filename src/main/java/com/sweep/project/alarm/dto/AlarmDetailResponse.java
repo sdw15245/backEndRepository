@@ -17,6 +17,12 @@ public class AlarmDetailResponse {
     @Schema(description = "알람 ID", example = "1")
     private final Long alarmId;
 
+    @Schema(description = "알림 제목", example = "친구약속")
+    private final String title;
+
+    @Schema(description = "준비물", example = "우산")
+    private final String checklist;
+
     @Schema(description = "반복 여부", example = "true")
     private final Boolean isLoop;
 
@@ -70,6 +76,8 @@ public class AlarmDetailResponse {
 
     public AlarmDetailResponse(Alarm alarm) {
         this.alarmId     = alarm.getAlarmId();
+        this.title       = alarm.getTitle();
+        this.checklist   = alarm.getChecklist();
         this.isLoop      = alarm.getIsLoop();
         this.day         = alarm.getDay();
         this.startTime   = alarm.getStartTime();

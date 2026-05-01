@@ -39,6 +39,8 @@ public class AlarmService {
         Alarm alarm = Alarm.builder()
                 .member(securityMemberReadService.securityMemberRead())
                 .route(route)
+                .title(req.title())
+                .checklist(req.checklist())
                 .arrivalTime(req.arrivalTime())
                 .startTime(req.startTime())
                 .prepareTime(req.prepareTime())
@@ -82,7 +84,8 @@ public class AlarmService {
                 .orElseThrow(() -> new RuntimeException("없는 route입니다"));
         alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
         Integer newInterval = req.interval() != null ? req.interval() : alarm.getInterval();
-        alarm.updateAlarm(route, req.arrivalTime(), req.startTime(), req.prepareTime(), newInterval, req.isLoop(), req.day());
+        alarm.updateAlarm(route, req.arrivalTime(), req.startTime(), req.prepareTime(), newInterval,
+                req.isLoop(), req.day(), req.title(), req.checklist());
 
         Integer totalTime = route.getTotalTime();
         if (totalTime != null) {
