@@ -45,7 +45,7 @@ public record AlarmCreateRequest(
         Integer interval,
 
         @Schema(description = "반복 알람 여부. true=매일/요일 반복, false=일회성", example = "true", requiredMode = Schema.RequiredMode.REQUIRED, hidden = true)
-        @NotNull
+        //@NotNull
         Boolean isLoop,
 
         @Schema(description = "반복 요일 (예: '월화수', 빈 문자열이면 매일). isLoop=true 시 필수", example = "월화수목금", hidden = true)

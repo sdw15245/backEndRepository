@@ -45,7 +45,7 @@ public class AlarmService {
                 .startTime(req.startTime())
                 .prepareTime(req.prepareTime())
                 .interval(req.interval())
-                .isLoop(req.isLoop())
+                .isLoop(Boolean.TRUE.equals(req.isLoop()))
                 .day(req.day())
                 .build();
         alarmRepository.save(alarm);
