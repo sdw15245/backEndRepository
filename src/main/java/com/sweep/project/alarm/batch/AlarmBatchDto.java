@@ -32,7 +32,8 @@ public class AlarmBatchDto {
 
     @Schema(
         description = "반복 요일 문자열 (예: '월화수', '월,화,수'). null 또는 빈 문자열이면 매일 발송",
-        example = "월화수목금"
+        example = "월화수목금",
+        hidden = true
     )
     private String day;
 

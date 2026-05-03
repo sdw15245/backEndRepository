@@ -23,10 +23,10 @@ public class AlarmDetailResponse {
     @Schema(description = "준비물", example = "우산")
     private final String checklist;
 
-    @Schema(description = "반복 여부", example = "true")
+    @Schema(description = "반복 여부", example = "true", hidden = true)
     private final Boolean isLoop;
 
-    @Schema(description = "반복 요일 (예: 월화수목금, 빈 문자열이면 매일)", example = "월화수목금")
+    @Schema(description = "반복 요일 (예: 월화수목금, 빈 문자열이면 매일)", example = "월화수목금", hidden = true)
     private final String day;
 
     @Schema(description = "알람 최초 발생 기준 시각 (출발 기준)", example = "2024-06-01T07:00:00")
