@@ -126,8 +126,15 @@ public class RedisGeoCacheAop {
             for (int i = 0; i < result.size() && i < routeIds.size(); i++) {
                 result.get(i).setRouteId(routeIds.get(i));
             }
+            /**
+             *
+             * 로직이 비효율적이긴한대 route자체가 identitiy라 saveall 메서드도 비효휼적 나중에 개선좀 해야될것으로보임.
+             * */
+            routeJsonList=result.stream()
+                    .map(this::serializeQuietly)
+                    .collect(Collectors.toList());
 
-
+            routeDbService.updateJsons(routeIds,routeJsonList);
 
             // Redis 캐싱
             routeRedisService.saveIfAbsent(type, startLat, startLon, endLat, endLon, routeIds, routeJsonList);
