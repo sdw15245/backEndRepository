@@ -1,11 +1,9 @@
 package com.sweep.project.alarm.service;
 
 import com.sweep.project.alarm.domain.Alarm;
-import com.sweep.project.alarm.dto.AlarmCreateRequest;
-import com.sweep.project.alarm.dto.AlarmDetailResponse;
-import com.sweep.project.alarm.dto.AlarmSummaryResponse;
-import com.sweep.project.alarm.dto.AlarmUpdateRequest;
+import com.sweep.project.alarm.dto.*;
 import com.sweep.project.alarm.repository.AlarmRepository;
+import com.sweep.project.alarm.repository.AlarmTicketRepo;
 import com.sweep.project.fcm.domain.FcmToken;
 import com.sweep.project.fcm.repository.FcmTokenRepository;
 import com.sweep.project.member.service.SecurityMemberReadService;
@@ -16,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +29,7 @@ public class AlarmService {
     private final FcmTokenRepository fcmTokenRepository;
     private final RouteRepository routeRepository;
     private final SecurityMemberReadService securityMemberReadService;
+    private final AlarmTicketRepo alarmTicketRepo;
 
     public AlarmDetailResponse createAlarm(AlarmCreateRequest req) {
 
@@ -45,8 +45,6 @@ public class AlarmService {
                 .startTime(req.startTime())
                 .prepareTime(req.prepareTime())
                 .interval(req.interval())
-                .isLoop(req.isLoop())
-                .day(req.day())
                 .build();
         alarmRepository.save(alarm);
 
@@ -63,11 +61,27 @@ public class AlarmService {
     }
 
     @Transactional(readOnly = true)
-    public List<AlarmSummaryResponse> getMyAlarms(Long memberId) {
-        return alarmRepository.findAllByMember_IdAndDeletedFalse(memberId)
-                .stream()
-                .map(AlarmSummaryResponse::new)
-                .collect(Collectors.toList());
+    public AlarmListResponse getMyAlarms(Long memberId, LocalDateTime now) {
+
+        List<Alarm> alarms=alarmTicketRepo.getAlarmList(memberId,now);
+        if(alarms.isEmpty()){
+            return new AlarmListResponse(null,List.of());
+        }
+        else{
+            AlarmDetailResponse alarmDetailResponse=
+                    getAlarmDetail(alarms.getFirst().getAlarmId());
+
+            if(alarms.size()==1){
+                return new AlarmListResponse(alarmDetailResponse,List.of());
+            }
+
+            List<AlarmSummaryResponse> alarmSummaryResponses=
+                    alarms.subList(1,alarms.size()).stream().map(AlarmSummaryResponse::new)
+                    .toList();
+
+            return new AlarmListResponse(alarmDetailResponse,alarmSummaryResponses);
+        }
+
     }
 
     @Transactional(readOnly = true)
@@ -84,8 +98,7 @@ public class AlarmService {
                 .orElseThrow(() -> new RuntimeException("없는 route입니다"));
         alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
         Integer newInterval = req.interval() != null ? req.interval() : alarm.getInterval();
-        alarm.updateAlarm(route, req.arrivalTime(), req.startTime(), req.prepareTime(), newInterval,
-                req.isLoop(), req.day(), req.title(), req.checklist());
+        alarm.updateAlarm(route, req.arrivalTime(), req.startTime(), req.prepareTime(), newInterval, req.title(), req.checklist());
 
         Integer totalTime = route.getTotalTime();
         if (totalTime != null) {

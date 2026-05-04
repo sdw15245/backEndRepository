@@ -25,7 +25,7 @@ public class SubwayBoardingInfo implements BoardingInfo {
     @Schema(description = "탑승 노선명", example = "2호선")
     private String lineName;
 
-    @Schema(description = "늦어도 이 시각에는 탑승해야 목적지 도착 희망 시각을 맞출 수 있음", example = "08:45:00")
+    @Schema(description = "늦어도 이 시각에는 탑승해야 목적지 도착 희망 시각을 맞출 수 있음. 해당 시간에 전철이 해당역에서 출발한다.", example = "08:45:00")
     private LocalTime latestBoardingTime;
 
     @Schema(description = "출발지에서 출발해야 하는 권장 시각", example = "08:30:00")

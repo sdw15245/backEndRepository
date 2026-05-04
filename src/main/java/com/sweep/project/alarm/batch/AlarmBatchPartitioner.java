@@ -5,7 +5,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.partition.support.Partitioner;
 import org.springframework.batch.item.ExecutionContext;
+import org.springframework.cglib.core.Local;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,13 +21,13 @@ import java.util.Map;
 public class AlarmBatchPartitioner implements Partitioner {
 
     private final AlarmTicketRepo alarmTicketRepo;
+    private final LocalDateTime now;
+    private final LocalDateTime next;
 
-    /** 오늘 요일 한글 약자 — DB 쿼리 필터에 사용 */
-    private final String todayKo;
 
     @Override
     public Map<String, ExecutionContext> partition(int gridSize) {
-        List<Long> ids = alarmTicketRepo.getActiveAlarmMinMaxId(todayKo);
+        List<Long> ids = alarmTicketRepo.getActiveAlarmMinMaxId(now,next);
         Map<String, ExecutionContext> result = new LinkedHashMap<>();
 
         Long minId = ids.get(0);

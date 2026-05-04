@@ -42,22 +42,8 @@ public record AlarmCreateRequest(
         @Schema(description = "준비 알람 발송 간격 (분), 기본값 20", example = "20", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
         @Min(1) @Max(240)
-        Integer interval,
+        Integer interval
 
-        @Schema(description = "반복 알람 여부. true=매일/요일 반복, false=일회성", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull
-        Boolean isLoop,
+) {}
 
-        @Schema(description = "반복 요일 (예: '월화수', 빈 문자열이면 매일). isLoop=true 시 필수", example = "월화수목금")
-        @Pattern(regexp = "^[월화수목금토일]*$", message = "요일은 '월화수목금토일' 문자만 가능합니다.")
-        @Size(max = 7)
-        String day
-) {
-        @AssertTrue(message = "isLoop=true 일 때 prepareTime, interval, day 는 필수입니다.")
-        public boolean isLoopFieldsValid() {
-                if (Boolean.TRUE.equals(isLoop)) {
-                        return prepareTime != null && interval != null && day != null;
-                }
-                return true;
-        }
-}
+

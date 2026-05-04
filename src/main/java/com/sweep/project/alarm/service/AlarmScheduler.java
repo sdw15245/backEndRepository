@@ -18,7 +18,7 @@ public class AlarmScheduler {
     private final Job alarmPublishJob;
 
     /** 매 정각 삭제되지 않은 RouteTicket 을 FCM 토큰과 조합해 RabbitMQ 에 적재한다. */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     public void readyOnMessage() {
         try {
             JobParameters params = new JobParametersBuilder()

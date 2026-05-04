@@ -53,7 +53,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        log.info("Request URI: {}={}", path,Arrays.stream(freePassPath).anyMatch(path::startsWith));
         return Arrays.stream(freePassPath).anyMatch(path::startsWith);
     }
 
