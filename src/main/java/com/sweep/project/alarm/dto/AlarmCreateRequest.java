@@ -29,11 +29,11 @@ public record AlarmCreateRequest(
 
         @Schema(description = "목적지 도착 예정 시각 (ISO 8601)", example = "2024-06-01T09:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
-        OffsetDateTime arrivalTime,
+        LocalDateTime arrivalTime,
 
         @Schema(description = "알람 최초 발생 기준 시각. 오늘 날짜이면 남은 트리거를 즉시 Redis 에 등록", example = "2024-06-01T07:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
-        OffsetDateTime startTime,
+        LocalDateTime startTime,
 
         @Schema(description = "출발 전 준비 시간 (분), 기본값 60", example = "60", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull

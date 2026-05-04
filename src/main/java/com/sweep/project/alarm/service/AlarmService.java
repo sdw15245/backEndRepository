@@ -15,8 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,8 +23,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional
 public class AlarmService {
-
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final AlarmRepository alarmRepository;
     private final AlarmRedisService alarmRedisService;
@@ -40,16 +36,13 @@ public class AlarmService {
         Route route = routeRepository.findById(req.routeId())
                 .orElseThrow(() -> new RuntimeException("없는 route입니다"));
 
-        LocalDateTime arrivalTime = toKstLocalDateTime(req.arrivalTime());
-        LocalDateTime startTime = toKstLocalDateTime(req.startTime());
-
         Alarm alarm = Alarm.builder()
                 .member(securityMemberReadService.securityMemberRead())
                 .route(route)
                 .title(req.title())
                 .checklist(req.checklist())
-                .arrivalTime(arrivalTime)
-                .startTime(startTime)
+                .arrivalTime(req.arrivalTime())
+                .startTime(req.startTime())
                 .prepareTime(req.prepareTime())
                 .interval(req.interval())
                 .build();
@@ -60,7 +53,7 @@ public class AlarmService {
             List<String> tokens = fcmTokenRepository.findAllByMemberId(alarm.getMemberId())
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
-                    alarm.getAlarmId(), alarm.getMemberId(), startTime, arrivalTime,
+                    alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
                     totalTime, req.prepareTime(), req.interval(), tokens);
         }
 
@@ -103,20 +96,16 @@ public class AlarmService {
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
         Route route = routeRepository.findById(req.routeId())
                 .orElseThrow(() -> new RuntimeException("없는 route입니다"));
-
-        LocalDateTime arrivalTime = toKstLocalDateTime(req.arrivalTime());
-        LocalDateTime startTime = toKstLocalDateTime(req.startTime());
-
         alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
         Integer newInterval = req.interval() != null ? req.interval() : alarm.getInterval();
-        alarm.updateAlarm(route, arrivalTime, startTime, req.prepareTime(), newInterval, req.title(), req.checklist());
+        alarm.updateAlarm(route, req.arrivalTime(), req.startTime(), req.prepareTime(), newInterval, req.title(), req.checklist());
 
         Integer totalTime = route.getTotalTime();
         if (totalTime != null) {
             List<String> tokens = fcmTokenRepository.findAllByMemberId(alarm.getMemberId())
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
-                    alarm.getAlarmId(), alarm.getMemberId(), startTime, arrivalTime,
+                    alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
                     totalTime, req.prepareTime(), newInterval, tokens);
         }
     }
@@ -132,9 +121,5 @@ public class AlarmService {
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
         alarm.updateDeleted();
         alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
-    }
-
-    private LocalDateTime toKstLocalDateTime(OffsetDateTime time) {
-        return time.atZoneSameInstant(KST).toLocalDateTime();
     }
 }
