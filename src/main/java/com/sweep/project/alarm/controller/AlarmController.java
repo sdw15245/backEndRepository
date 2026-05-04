@@ -1,10 +1,6 @@
 package com.sweep.project.alarm.controller;
 
-import com.sweep.project.alarm.domain.Alarm;
-import com.sweep.project.alarm.dto.AlarmCreateRequest;
-import com.sweep.project.alarm.dto.AlarmDetailResponse;
-import com.sweep.project.alarm.dto.AlarmSummaryResponse;
-import com.sweep.project.alarm.dto.AlarmUpdateRequest;
+import com.sweep.project.alarm.dto.*;
 import com.sweep.project.alarm.service.AlarmService;
 import com.sweep.project.member.service.SecurityMemberReadService;
 import com.sweep.project.util.ApiResponseUtil;
@@ -20,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Tag(name = "알람", description = "알람 관련 API")
@@ -41,7 +38,7 @@ public class AlarmController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "알람 생성 성공",
-                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
+                    useReturnTypeSchema = true),
             @ApiResponse(responseCode = "400", description = "요청 값 검증 실패 (필수 값 누락, 형식 오류 등)",
                     content = @Content(schema = @Schema())),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
@@ -61,17 +58,17 @@ public class AlarmController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
+                    useReturnTypeSchema = true),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
                     content = @Content(schema = @Schema()))
     })
     @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
             required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @GetMapping
-    public ApiResponseUtil<List<AlarmSummaryResponse>> getMyAlarms() {
+    public ApiResponseUtil<AlarmListResponse> getMyAlarms() {
         Long memberId = securityMemberReadService.securityMemberRead().getId();
-        List<AlarmSummaryResponse> alarms = alarmService.getMyAlarms(memberId);
-        return ApiResponseUtil.SuccessApiResponse("내 알람 목록 조회 성공", alarms);
+        return ApiResponseUtil.SuccessApiResponse("내 알람 목록 조회 성공",
+                alarmService.getMyAlarms(memberId, LocalDateTime.now()));
     }
 
     @Operation(
@@ -85,7 +82,7 @@ public class AlarmController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
+                    useReturnTypeSchema = true),
             @ApiResponse(responseCode = "404", description = "존재하지 않는 알람 ID",
                     content = @Content(schema = @Schema())),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
@@ -112,7 +109,7 @@ public class AlarmController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "알람 수정 성공",
-                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
+                    useReturnTypeSchema = true),
             @ApiResponse(responseCode = "400", description = "요청 값 검증 실패 (필수 값 누락, 형식 오류 등)",
                     content = @Content(schema = @Schema())),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
@@ -133,7 +130,7 @@ public class AlarmController {
     @Operation(summary = "알람 삭제", description = "특정 알람을 삭제(soft delete)합니다. 연관된 Redis 키도 함께 제거됩니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "알람 삭제 성공",
-                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class))),
+                    useReturnTypeSchema = true),
             @ApiResponse(responseCode = "401", description = "인증 실패 - JWT 토큰이 없거나 유효하지 않습니다.",
                     content = @Content(schema = @Schema()))
     })

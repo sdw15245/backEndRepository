@@ -4,13 +4,17 @@ import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sweep.project.alarm.batch.AlarmBatchDto;
+import com.sweep.project.alarm.domain.Alarm;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
 import static com.sweep.project.alarm.domain.QAlarm.alarm;
+import static com.sweep.project.member.domain.QMember.member;
 import static com.sweep.project.route.domain.QRoute.route;
 
 /**
@@ -32,15 +36,13 @@ public class AlarmTicketRepo {
     /**
      * 활성 Alarm 의 alarmId min/max 를 반환한다.
      *
-     * @param todayKo 오늘 요일 한글 약자 (예: "월", "화") — day 필드 포함 여부 필터에 사용
      */
-    public List<Long> getActiveAlarmMinMaxId(String todayKo) {
+    public List<Long> getActiveAlarmMinMaxId(LocalDateTime now,LocalDateTime next) {
         Tuple tuple = jpaQueryFactory
                 .select(alarm.alarmId.min(), alarm.alarmId.max())
                 .from(alarm)
                 .where(alarm.deleted.isFalse()
-                        .and(alarm.isLoop.isTrue())
-                        .and(alarm.day.contains(todayKo)))
+                        .and(alarm.arrivalTime.between(now,next)))
                 .fetchOne();
 
         if (tuple == null) {
@@ -59,10 +61,9 @@ public class AlarmTicketRepo {
      * @param maxId    파티션 상한 alarmId (포함)
      * @param lastId   직전 페이지 마지막 alarmId (다음 페이지 시작 커서)
      * @param pageSize 한 번에 읽을 행 수
-     * @param todayKo  오늘 요일 한글 약자 — day 필드 포함 여부 필터에 사용
      */
     public List<AlarmBatchDto> fetchActiveAlarmPage(Long minId, Long maxId, Long lastId,
-                                                    int pageSize, String todayKo) {
+                                                    int pageSize) {
         return jpaQueryFactory
                 .select(Projections.constructor(AlarmBatchDto.class,
                         alarm.alarmId,
@@ -70,18 +71,25 @@ public class AlarmTicketRepo {
                         alarm.prepareTime,
                         alarm.interval,
                         alarm.arrivalTime,
-                        alarm.day,
                         route.totalTime))
                 .from(alarm)
                 .join(alarm.route, route)
                 .where(alarm.deleted.isFalse()
-                        .and(alarm.day.isNull()
-                                .or(alarm.day.isEmpty())
-                                .or(alarm.day.contains(todayKo)))
                         .and(alarm.alarmId.between(minId, maxId))
                         .and(alarm.alarmId.gt(lastId)))
                 .orderBy(alarm.alarmId.asc())
                 .limit(pageSize)
+                .fetch();
+    }
+
+    public List<Alarm> getAlarmList(Long memberId, LocalDateTime currentTime){
+        return jpaQueryFactory.select(alarm)
+                .from(alarm)
+                .join(member)
+                .on(alarm.member.eq(member))
+                .where(alarm.member.id.eq(memberId).and(alarm.deleted.isFalse())
+                        .and(alarm.arrivalTime.after(currentTime)))
+                .orderBy(alarm.arrivalTime.asc())
                 .fetch();
     }
 }
