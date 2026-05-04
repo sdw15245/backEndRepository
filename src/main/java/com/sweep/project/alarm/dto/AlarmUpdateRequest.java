@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record AlarmUpdateRequest(
         @Schema(description = "경로 ID. 경로를 변경할 경우 새 경로 ID, 유지할 경우 기존 경로 ID 전달", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -27,11 +28,11 @@ public record AlarmUpdateRequest(
 
         @Schema(description = "목적지 도착 예정 시각 (ISO 8601), 수정 안할경우 기존값 전달", example = "2024-06-01T09:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
-        LocalDateTime arrivalTime,
+        OffsetDateTime arrivalTime,
 
         @Schema(description = "알람 최초 발생 기준 시각. 오늘 날짜이면 새 값으로 Redis 재등록, 수정 안할경우 기본값 전달", example = "2024-06-01T07:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
-        LocalDateTime startTime,
+        OffsetDateTime startTime,
 
         @Schema(description = "출발 전 준비 시간 (분). 기본값 60, 수정 안할경우 기존값 전달", example = "60", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
