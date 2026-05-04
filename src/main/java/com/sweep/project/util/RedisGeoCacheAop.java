@@ -114,15 +114,9 @@ public class RedisGeoCacheAop {
             @SuppressWarnings("unchecked")
             List<TrafficResponse> result = (List<TrafficResponse>) joinPoint.proceed();
 
-            log.info("size:{}",result.size());
-
             List<String> routeJsonList = result.stream()
                     .map(this::serializeQuietly)
                     .collect(Collectors.toList());
-            routeJsonList.stream().forEach(x->{
-                log.info("data:{}",x);
-            });
-
             // DB 저장
             List<Long> routeIds = routeDbService.saveAll(type, startLon, startLat, endLon, endLat, routeJsonList);
             log.info("[GeoCache] DB 저장 완료 routeIds={} type={}", routeIds, type);

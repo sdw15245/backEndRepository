@@ -69,7 +69,7 @@ public class AlarmBatchConfig {
     @Bean
     public JobExecutionListener alarmJobListener() {
         LocalDateTime now=LocalDateTime.now();
-        LocalDateTime after=now.minusDays(1L);
+        LocalDateTime after=now.plusDays(1L);
         return new JobExecutionListener() {
             @Override
             public void beforeJob(JobExecution jobExecution) {
@@ -108,7 +108,7 @@ public class AlarmBatchConfig {
     @JobScope
     public Partitioner alarmBatchPartitioner(
             @Value("#{jobExecutionContext['schedulerRunAt']}") LocalDateTime schedulerRunAt,
-            @Value("${jobExecutionContext['nextSchedulerRunAt']}")LocalDateTime after) {
+            @Value("#{jobExecutionContext['nextSchedulerRunAt']}")LocalDateTime after) {
         return new AlarmBatchPartitioner(alarmTicketRepo,schedulerRunAt,after);
     }
 
