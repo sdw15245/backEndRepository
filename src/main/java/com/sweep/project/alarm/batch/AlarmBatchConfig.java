@@ -46,16 +46,6 @@ public class AlarmBatchConfig {
     private static final int CHUNK_SIZE = 100;
     private static final int GRID_SIZE  = 4;
 
-    private static final Map<DayOfWeek, String> DAY_KO = Map.of(
-            DayOfWeek.MONDAY,    "월",
-            DayOfWeek.TUESDAY,   "화",
-            DayOfWeek.WEDNESDAY, "수",
-            DayOfWeek.THURSDAY,  "목",
-            DayOfWeek.FRIDAY,    "금",
-            DayOfWeek.SATURDAY,  "토",
-            DayOfWeek.SUNDAY,    "일"
-    );
-
     private final AlarmTicketRepo alarmTicketRepo;
     private final FcmTokenRepository fcmTokenRepository;
     private final StringRedisTemplate redisTemplate;
@@ -78,10 +68,13 @@ public class AlarmBatchConfig {
      */
     @Bean
     public JobExecutionListener alarmJobListener() {
+        LocalDateTime now=LocalDateTime.now();
+        LocalDateTime after=now.minusDays(1L);
         return new JobExecutionListener() {
             @Override
             public void beforeJob(JobExecution jobExecution) {
-                jobExecution.getExecutionContext().put("schedulerRunAt", LocalDateTime.now());
+                jobExecution.getExecutionContext().put("schedulerRunAt",now);
+                jobExecution.getExecutionContext().put("nextSchedulerRunAt",after);
             }
         };
     }
@@ -114,17 +107,15 @@ public class AlarmBatchConfig {
     @Bean
     @JobScope
     public Partitioner alarmBatchPartitioner(
-            @Value("#{jobExecutionContext['schedulerRunAt']}") LocalDateTime schedulerRunAt) {
-        String todayKo = DAY_KO.get(schedulerRunAt.getDayOfWeek());
-        return new AlarmBatchPartitioner(alarmTicketRepo, todayKo);
+            @Value("#{jobExecutionContext['schedulerRunAt']}") LocalDateTime schedulerRunAt,
+            @Value("${jobExecutionContext['nextSchedulerRunAt']}")LocalDateTime after) {
+        return new AlarmBatchPartitioner(alarmTicketRepo,schedulerRunAt,after);
     }
 
     @Bean
     @StepScope
-    public AlarmZeroOffsetReader alarmZeroOffsetReader(
-            @Value("#{jobExecutionContext['schedulerRunAt']}") LocalDateTime schedulerRunAt) {
-        String todayKo = DAY_KO.get(schedulerRunAt.getDayOfWeek());
-        return new AlarmZeroOffsetReader(alarmTicketRepo, CHUNK_SIZE, todayKo);
+    public AlarmZeroOffsetReader alarmZeroOffsetReader() {
+        return new AlarmZeroOffsetReader(alarmTicketRepo, CHUNK_SIZE);
     }
 
     @Bean

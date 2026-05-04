@@ -30,13 +30,6 @@ public class AlarmBatchDto {
     @Schema(description = "목적지 도착 예정 시각", example = "2024-06-01T09:00:00")
     private LocalDateTime arrivalTime;
 
-    @Schema(
-        description = "반복 요일 문자열 (예: '월화수', '월,화,수'). null 또는 빈 문자열이면 매일 발송",
-        example = "월화수목금",
-        hidden = true
-    )
-    private String day;
-
     @Schema(description = "Route.totalTime(분). null이면 소요 시간 불명으로 해당 알람 스킵", example = "45")
     private Integer totalTime;
 }

@@ -47,7 +47,7 @@ public class RouteController {
                     },
                     useReturnTypeSchema = true),
             @ApiResponse(responseCode = "401", description = "권한이 부족합니다.",
-                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class)))
+                    content = @Content(schema = @Schema()))
     })
     @GetMapping("/bus/arrival")
     public ApiResponseUtil<BusArrivalInfo> getBusArrival(
@@ -75,7 +75,7 @@ public class RouteController {
                     },
                     useReturnTypeSchema = true),
             @ApiResponse(responseCode = "401", description = "권한이 부족합니다.",
-                    content = @Content(schema = @Schema(implementation = ApiResponseUtil.class)))
+                    content = @Content(schema = @Schema()))
     })
     @Parameter(name = "Authorization",
             description = "요청시 토큰값을 넣어주셔야됩니다.",
@@ -102,5 +102,42 @@ public class RouteController {
         }
         List<BoardingInfo> boardingInfos = trafficRouteStragy.getBoardingInfo(type, arrivalTime, routes);
         return ApiResponseUtil.SuccessApiResponse("ok",new RouteResponse(routes, boardingInfos));
+    }
+
+
+    @Operation(summary = "알람 리스트 목록조회시에 subway타입인 지하철 시간표를 조회해서 보여줌. latestBoardingTime  이컬럼을 쓰씨면될거같습니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "생성 성공",
+                    headers = {
+                            @Header(name = "Authorization", description = "Bearer [Access JWT 토큰]",
+                                    schema = @Schema(type = "string")),
+                    },
+                    useReturnTypeSchema = true),
+            @ApiResponse(responseCode = "401", description = "권한이 부족합니다.",
+                    content = @Content(schema = @Schema()))
+    })
+    @Parameter(name = "Authorization",
+            description = "요청시 토큰값을 넣어주셔야됩니다.",
+            required = true,
+            example = "Bearer [tokenvalue]",
+            in = ParameterIn.HEADER)
+    @GetMapping("/subway/detail")
+    public ApiResponseUtil<List<BoardingInfo>> getSubwayBoardingInfo(
+            @Parameter(description = "출발지 위도", example = "37.5665", required = true)
+            @RequestParam double startLat,
+            @Parameter(description = "출발지 경도", example = "126.9780", required = true)
+            @RequestParam double startLon,
+            @Parameter(description = "목적지 위도", example = "37.4979", required = true)
+            @RequestParam double endLat,
+            @Parameter(description = "목적지 경도", example = "127.0276", required = true)
+            @RequestParam double endLon,
+            @Parameter(description = "목적지 도착 희망 시각 (ISO 8601 형식)", example = "2024-06-01T09:00:00", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime){
+        List<? extends TrafficResponse> routes = trafficRouteStragy.getRoutes(PathSearchType.PATH_TYPE_SUBWAY, startLat, startLon, endLat, endLon);
+        if (routes.isEmpty()) {
+            return ApiResponseUtil.SuccessApiResponse("ok", List.of());
+        }
+        List<BoardingInfo> boardingInfos = trafficRouteStragy.getBoardingInfo(PathSearchType.PATH_TYPE_SUBWAY, arrivalTime, routes);
+        return ApiResponseUtil.SuccessApiResponse("ok",boardingInfos);
     }
 }
