@@ -89,6 +89,20 @@ public class RouteDbService {
                 .map(Route::getId);
     }
 
+    @Transactional
+    public void updateJsons(List<Long> routeIds, List<String> routeJsonList) {
+        List<Route> routes = routeRepository.findAllById(routeIds);
+
+        for (Route r : routes) {
+            int idx = routeIds.indexOf(r.getId());
+            if (idx >= 0) {
+                r.updateRouteJson(routeJsonList.get(idx));
+            }
+        }
+        // dirty checking으로 자동 update
+    }
+
+
     /** 소수점 4자리 반올림 — Redis {@code %.4f} 와 동일 */
     public static double round4(double value) {
         return Math.round(value * 10_000.0) / 10_000.0;

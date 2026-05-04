@@ -60,4 +60,8 @@ public class Route {
         this.totalTime = totalTime;
         this.createDate = LocalDateTime.now();
     }
+
+    public void updateRouteJson(String val){
+        this.routeData=val;
+    }
 }
