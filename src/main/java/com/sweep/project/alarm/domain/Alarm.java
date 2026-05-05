@@ -29,9 +29,11 @@ public class Alarm {
     private Boolean needCheck = false;
     private LocalDateTime createdAt;
 
+    @Column(nullable = false, length = 50)
+    private String title;               // 알림 제목
+    @Column(columnDefinition = "text")
+    private String checklist;           // 준비물
     private Integer interval;           // 준비 알림 간격 (분)
-    private String day;                 // 반복 요일
-    private Boolean isLoop;             // 반복 여부
     private LocalDateTime arrivalTime;  // 도착 시간
     private LocalDateTime startTime;    // 일정 날짜 (최초 알림 시점)
     private Boolean deleted = false;
@@ -39,14 +41,14 @@ public class Alarm {
 
     @Builder
     public Alarm(Member member, Route route,
-                 Integer interval, String day, Boolean isLoop,
-                 LocalDateTime arrivalTime, LocalDateTime startTime,
+                 String title, String checklist,
+                 Integer interval,LocalDateTime arrivalTime, LocalDateTime startTime,
                  Integer prepareTime) {
         this.member = member;
         this.route = route;
+        this.title = title;
+        this.checklist = checklist;
         this.interval = interval;
-        this.day = day;
-        this.isLoop = isLoop;
         this.arrivalTime = arrivalTime;
         this.startTime = startTime;
         this.prepareTime = prepareTime;
@@ -62,14 +64,14 @@ public class Alarm {
 
     public void updateAlarm(Route route, LocalDateTime arrivalTime, LocalDateTime startTime,
                          Integer prepareTime, Integer interval,
-                         Boolean isLoop, String day) {
+                            String title, String checklist) {
         this.route = route;
         this.arrivalTime = arrivalTime;
         this.startTime = startTime;
         this.prepareTime = prepareTime;
         this.interval = interval;
-        this.isLoop = isLoop;
-        this.day = day;
+        this.title = title;
+        this.checklist = checklist;
     }
 
     public void updateDeleted() {

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.*;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -21,8 +22,6 @@ public class AlarmZeroOffsetReader implements ItemStreamReader<AlarmBatchDto> {
     private final AlarmTicketRepo alarmTicketRepo;
     private final int pageSize;
 
-    /** 오늘 요일 한글 약자 — DB 페이지 쿼리 필터에 전달 */
-    private final String todayKo;
 
     private static final String LAST_ID_KEY = "alarmLastIdKey";
 
@@ -51,7 +50,7 @@ public class AlarmZeroOffsetReader implements ItemStreamReader<AlarmBatchDto> {
         if (isEmpty()) return null;
 
         if (!buffer.hasNext()) {
-            List<AlarmBatchDto> data = alarmTicketRepo.fetchActiveAlarmPage(minId, maxId, startId, pageSize, todayKo);
+            List<AlarmBatchDto> data = alarmTicketRepo.fetchActiveAlarmPage(minId, maxId, startId, pageSize);
             if (data.isEmpty()) return null;
 
             startId = data.get(data.size() - 1).getAlarmId();
