@@ -131,19 +131,19 @@ public class RouteController {
             in = ParameterIn.HEADER)
     @GetMapping("/detail/{id}")
     public ApiResponseUtil<List<BoardingInfo>> getSubwayBoardingInfo(
-           @PathVariable(name = "id") Long id,
-           @Parameter(description = "경로 탐색 유형. PATH_TYPE_ANYONE, PATH_TYPE_SUBWAY, PATH_TYPE_BUS", example = "PATH_TYPE_SUBWAY", required = true)
-           @RequestParam PathSearchType type,
-           @Parameter(description = "출발지 위도", example = "37.5665", required = true)
-           @RequestParam double startLat,
-           @Parameter(description = "출발지 경도", example = "126.9780", required = true)
-           @RequestParam double startLon,
-           @Parameter(description = "목적지 위도", example = "37.4979", required = true)
-           @RequestParam double endLat,
-           @Parameter(description = "목적지 경도", example = "127.0276", required = true)
-           @RequestParam double endLon,
-           @Parameter(description = "목적지 도착 희망 시각 (ISO 8601 형식)", example = "2024-06-01T09:00:00", required = true)
-           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime){
+            @PathVariable(name = "id") Long id,
+            @Parameter(description = "경로 탐색 유형. PATH_TYPE_ANYONE, PATH_TYPE_SUBWAY, PATH_TYPE_BUS", example = "PATH_TYPE_SUBWAY", required = true)
+            @RequestParam PathSearchType type,
+            @Parameter(description = "출발지 위도", example = "37.5665", required = true)
+            @RequestParam double startLat,
+            @Parameter(description = "출발지 경도", example = "126.9780", required = true)
+            @RequestParam double startLon,
+            @Parameter(description = "목적지 위도", example = "37.4979", required = true)
+            @RequestParam double endLat,
+            @Parameter(description = "목적지 경도", example = "127.0276", required = true)
+            @RequestParam double endLon,
+            @Parameter(description = "목적지 도착 희망 시각 (ISO 8601 형식)", example = "2024-06-01T09:00:00", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime) {
 
         String timeHHmm = arrivalTime.format(DateTimeFormatter.ofPattern("HHmm"));
         int dayCode = switch (arrivalTime.getDayOfWeek()) {
