@@ -48,6 +48,9 @@ public class AlarmRedisService {
         LocalDateTime departureTime = arrivalTime.minusMinutes(totalTime);
         List<RedisAlarmEntry> entries = new ArrayList<>();
 
+        log.info("출발 시간:{}--- 현재시간:{}",departureTime,now);
+        log.info("출발 알림이 생성이 가능한가?:{}",departureTime.isAfter(now));
+
         // 출발 알람
         if (departureTime.isAfter(now)) {
             long ttl = Duration.between(now, departureTime).toMillis();
