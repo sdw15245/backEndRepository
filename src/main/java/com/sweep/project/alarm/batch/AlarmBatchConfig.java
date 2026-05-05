@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -68,8 +69,11 @@ public class AlarmBatchConfig {
      */
     @Bean
     public JobExecutionListener alarmJobListener() {
-        LocalDateTime now=LocalDateTime.now();
+        //LocalDateTime now=LocalDateTime.now();
+
+        LocalDateTime now = LocalDate.now().atStartOfDay();
         LocalDateTime after=now.plusDays(1L);
+        log.info("now:{}",now);
         return new JobExecutionListener() {
             @Override
             public void beforeJob(JobExecution jobExecution) {
