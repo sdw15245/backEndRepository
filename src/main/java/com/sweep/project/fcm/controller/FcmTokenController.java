@@ -1,5 +1,6 @@
 package com.sweep.project.fcm.controller;
 
+import com.sweep.project.fcm.dto.FcmRequestDto;
 import com.sweep.project.fcm.dto.FcmSendLogResponse;
 import com.sweep.project.fcm.service.FcmSendLogService;
 import com.sweep.project.fcm.service.FcmTokenService;
@@ -43,9 +44,9 @@ public class FcmTokenController {
             example = "Bearer [tokenvalue]",
             in = ParameterIn.HEADER)
     @PostMapping("/token")
-    public void saveToken(@RequestBody String token) {
+    public void saveToken(@RequestBody FcmRequestDto fcmRequestDto) {
         Member member = securityMemberReadService.securityMemberRead();
-        fcmTokenService.saveToken(member.getId(), token);
+        fcmTokenService.saveToken(member.getId(),fcmRequestDto.getToken());
     }
 
     @Operation(summary = "FCM 토큰 삭제", description = "로그아웃 시 클라이언트의 FCM 토큰을 삭제합니다.")
@@ -60,8 +61,8 @@ public class FcmTokenController {
             example = "Bearer [tokenvalue]",
             in = ParameterIn.HEADER)
     @DeleteMapping("/token")
-    public void deleteToken(@RequestBody String token) {
-        fcmTokenService.deleteToken(token);
+    public void deleteToken(@RequestBody FcmRequestDto fcmRequestDto) {
+        fcmTokenService.deleteToken(fcmRequestDto.getToken());
     }
 
     @Operation(summary = "FCM 테스트 발송", description = "FCM 토큰 발송 테스트용 API입니다.")
