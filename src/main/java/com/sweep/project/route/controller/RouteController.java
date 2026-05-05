@@ -8,6 +8,7 @@ import com.sweep.project.route.domain.Route;
 import com.sweep.project.route.domain.RouteDbService;
 import com.sweep.project.route.domain.RouteResponse;
 import com.sweep.project.redis.RouteRedisService;
+import com.sweep.project.route.preview.service.RoutePreviewMetaRedisService;
 import com.sweep.project.util.ApiResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,6 +39,7 @@ public class RouteController {
     private final BusArrivalService busArrivalService;
     private final RouteDbService routeDbService;
     private final RouteRedisService routeRedisService;
+    private final RoutePreviewMetaRedisService routePreviewMetaRedisService;
 
     /**
      * 버스 도착 정보 조회.
@@ -108,6 +110,7 @@ public class RouteController {
         if (routes.isEmpty()) {
             return ApiResponseUtil.SuccessApiResponse("ok", new RouteResponse(null, null));
         }
+        routePreviewMetaRedisService.saveRouteMetas(routes);
         List<BoardingInfo> boardingInfos = trafficRouteStragy.getBoardingInfo(type, arrivalTime, routes);
         return ApiResponseUtil.SuccessApiResponse("ok",new RouteResponse(routes, boardingInfos));
     }

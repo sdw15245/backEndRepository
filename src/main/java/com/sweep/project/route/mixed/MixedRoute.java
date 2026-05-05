@@ -16,6 +16,9 @@ public class MixedRoute implements TrafficResponse {
     /** DB Route ID */
     private Long routeId;
 
+    /** 노선 미리보기 조회용 임시 ID */
+    private String routePreviewId;
+
     /** 총 소요 시간 (분) */
     private int totalTime;
     /** 요금 (원) */
