@@ -1,8 +1,12 @@
 package com.sweep.project.route.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sweep.project.route.TrafficResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +27,10 @@ public class RouteDbService {
 
     private final RouteRepository routeRepository;
     private final ObjectMapper objectMapper;
+    @Qualifier("redisObjectMapper")
+    private final ObjectMapper redisObjectMapper;
 
+    private static final TypeReference<TrafficResponse> ROUTE_TYPE = new TypeReference<>() {};
     /**
      * 각 route JSON 을 개별 행으로 저장하고 생성된 PK 목록을 반환한다.
      */
@@ -102,6 +109,13 @@ public class RouteDbService {
         // dirty checking으로 자동 update
     }
 
+    public List<TrafficResponse> findById(Long id){
+        Route route=routeRepository.findById(id)
+                .orElseThrow(()->new RuntimeException("없는 루트입니다"));
+        TrafficResponse trafficResponse=deserializeQuietly(route.getRouteData());
+        return List.of(trafficResponse);
+    }
+
 
     /** 소수점 4자리 반올림 — Redis {@code %.4f} 와 동일 */
     public static double round4(double value) {
@@ -115,6 +129,15 @@ public class RouteDbService {
             return objectMapper.readTree(routeJson).path("totalTime").asInt(0);
         } catch (Exception e) {
             log.warn("[RouteDb] totalTime 파싱 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private TrafficResponse deserializeQuietly(String json) {
+        try {
+            return redisObjectMapper.readValue(json, ROUTE_TYPE);
+        } catch (JsonProcessingException e) {
+            log.error("[GeoCache] route 역직렬화 실패", e);
             return null;
         }
     }
