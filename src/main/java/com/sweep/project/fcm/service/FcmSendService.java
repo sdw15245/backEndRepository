@@ -44,7 +44,10 @@ public class FcmSendService {
 
     public void bulkPush(List<Message> data){
         try {
-            firebaseMessaging.sendEach(data);
+            BatchResponse response = firebaseMessaging.sendEach(data);
+            log.info("FCM bulk send result success={}, failure={}",
+                    response.getSuccessCount(),
+                    response.getFailureCount());
         } catch (FirebaseMessagingException e) {
             throw new RuntimeException(e);
         }
