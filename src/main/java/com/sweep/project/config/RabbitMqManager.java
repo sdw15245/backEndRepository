@@ -52,8 +52,8 @@ public class RabbitMqManager {
         alarmSetting();
     }
     public void alarmSetting(){
-        final String title = "test1";
-        final String body = "test2";
+        final String title = "아내일점심은 뭐먹을까";
+        final String body = "내일 점심은 가지무침이다.";
         Queue actionQueue=createAlramQueue();
         Binding binding= BindingBuilder.bind(actionQueue)
                 .to(createAlarmExchange())
