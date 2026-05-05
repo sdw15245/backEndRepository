@@ -35,8 +35,8 @@ public class RouteDbService {
      * 각 route JSON 을 개별 행으로 저장하고 생성된 PK 목록을 반환한다.
      */
     public List<Long> saveAll(PathSearchType type,
-                              double startLon, double startLat,
-                              double endLon, double endLat,
+                              double startLat, double startLon,
+                              double endLat, double endLon,
                               List<String> routeJsonList) {
 
         double sx = round4(startLon), sy = round4(startLat);
@@ -66,8 +66,8 @@ public class RouteDbService {
      */
     @Transactional(readOnly = true)
     public List<RouteWithId> findRoutes(PathSearchType type,
-                                        double startLon, double startLat,
-                                        double endLon, double endLat) {
+                                        double startLat, double startLon,
+                                        double endLat, double endLon) {
         return routeRepository
                 .findByTypeAndStartXAndStartYAndEndXAndEndY(
                         type,
@@ -86,8 +86,8 @@ public class RouteDbService {
      */
     @Transactional(readOnly = true)
     public Optional<Long> findLatestId(PathSearchType type,
-                                       double startLon, double startLat,
-                                       double endLon, double endLat) {
+                                       double startLat, double startLon,
+                                       double endLat, double endLon) {
         return routeRepository
                 .findFirstByTypeAndStartXAndStartYAndEndXAndEndYOrderByIdDesc(
                         type,

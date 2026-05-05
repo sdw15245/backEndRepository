@@ -87,7 +87,7 @@ public class RedisGeoCacheAop {
 
             // ── Step 2. DB 조회 ──────────────────────────────────────────────
             List<RouteDbService.RouteWithId> dbRoutes =
-                    routeDbService.findRoutes(type, startLon, startLat, endLon, endLat);
+                    routeDbService.findRoutes(type, startLat, startLon, endLat, endLon);
 
             if (!dbRoutes.isEmpty()) {
                 log.info("[GeoCache] DB 히트 count={} type={}", dbRoutes.size(), type);
@@ -118,7 +118,7 @@ public class RedisGeoCacheAop {
                     .map(this::serializeQuietly)
                     .collect(Collectors.toList());
             // DB 저장
-            List<Long> routeIds = routeDbService.saveAll(type, startLon, startLat, endLon, endLat, routeJsonList);
+            List<Long> routeIds = routeDbService.saveAll(type, startLat, startLon, endLat, endLon, routeJsonList);
             log.info("[GeoCache] DB 저장 완료 routeIds={} type={}", routeIds, type);
 
 
