@@ -4,7 +4,10 @@ import com.sweep.project.route.bus.BusArrivalInfo;
 import com.sweep.project.route.bus.BusArrivalService;
 import com.sweep.project.route.*;
 import com.sweep.project.route.domain.PathSearchType;
+import com.sweep.project.route.domain.Route;
+import com.sweep.project.route.domain.RouteDbService;
 import com.sweep.project.route.domain.RouteResponse;
+import com.sweep.project.redis.RouteRedisService;
 import com.sweep.project.util.ApiResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,8 +22,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.format.DateTimeFormatter;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/route")
@@ -30,6 +36,8 @@ public class RouteController {
 
     private final TrafficRouteStragy trafficRouteStragy;
     private final BusArrivalService busArrivalService;
+    private final RouteDbService routeDbService;
+    private final RouteRedisService routeRedisService;
 
     /**
      * 버스 도착 정보 조회.
@@ -121,23 +129,50 @@ public class RouteController {
             required = true,
             example = "Bearer [tokenvalue]",
             in = ParameterIn.HEADER)
-    @GetMapping("/subway/detail")
+    @GetMapping("/detail/{id}")
     public ApiResponseUtil<List<BoardingInfo>> getSubwayBoardingInfo(
-            @Parameter(description = "출발지 위도", example = "37.5665", required = true)
-            @RequestParam double startLat,
-            @Parameter(description = "출발지 경도", example = "126.9780", required = true)
-            @RequestParam double startLon,
-            @Parameter(description = "목적지 위도", example = "37.4979", required = true)
-            @RequestParam double endLat,
-            @Parameter(description = "목적지 경도", example = "127.0276", required = true)
-            @RequestParam double endLon,
-            @Parameter(description = "목적지 도착 희망 시각 (ISO 8601 형식)", example = "2024-06-01T09:00:00", required = true)
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime){
-        List<? extends TrafficResponse> routes = trafficRouteStragy.getRoutes(PathSearchType.PATH_TYPE_SUBWAY, startLat, startLon, endLat, endLon);
-        if (routes.isEmpty()) {
+           @PathVariable(name = "id") Long id,
+           @Parameter(description = "경로 탐색 유형. PATH_TYPE_ANYONE, PATH_TYPE_SUBWAY, PATH_TYPE_BUS", example = "PATH_TYPE_SUBWAY", required = true)
+           @RequestParam PathSearchType type,
+           @Parameter(description = "출발지 위도", example = "37.5665", required = true)
+           @RequestParam double startLat,
+           @Parameter(description = "출발지 경도", example = "126.9780", required = true)
+           @RequestParam double startLon,
+           @Parameter(description = "목적지 위도", example = "37.4979", required = true)
+           @RequestParam double endLat,
+           @Parameter(description = "목적지 경도", example = "127.0276", required = true)
+           @RequestParam double endLon,
+           @Parameter(description = "목적지 도착 희망 시각 (ISO 8601 형식)", example = "2024-06-01T09:00:00", required = true)
+           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime arrivalTime){
+
+        String timeHHmm = arrivalTime.format(DateTimeFormatter.ofPattern("HHmm"));
+        int dayCode = switch (arrivalTime.getDayOfWeek()) {
+            case SATURDAY -> 2;
+            case SUNDAY   -> 3;
+            default       -> 1;
+        };
+
+        // 1. 기존 boarding hash 에서 routeId 단건 조회
+        Optional<BoardingInfo> cached =
+                routeRedisService.findBoardingById(type, timeHHmm, dayCode, startLat, startLon, endLat, endLon, id);
+        if (cached.isPresent()) {
+            return ApiResponseUtil.SuccessApiResponse("ok", List.of(cached.get()));
+        }
+
+        // 2. 캐시 미스 → DB에서 TrafficResponse 조회
+        List<TrafficResponse> trafficResponses = routeDbService.findById(id);
+        if (trafficResponses.isEmpty()) {
             return ApiResponseUtil.SuccessApiResponse("ok", List.of());
         }
-        List<BoardingInfo> boardingInfos = trafficRouteStragy.getBoardingInfo(PathSearchType.PATH_TYPE_SUBWAY, arrivalTime, routes);
-        return ApiResponseUtil.SuccessApiResponse("ok",boardingInfos);
+
+        // 3. AOP 없이 단건 boarding info 계산
+        BoardingInfo boardingInfo =
+                trafficRouteStragy.getBoardingInfoSingle(type, arrivalTime, trafficResponses.get(0));
+
+        // 4. 기존 boarding hash 에 routeId 기준으로 저장 (AOP 캐시와 동일한 키 구조 공유)
+        routeRedisService.saveBoardingById(
+                type, timeHHmm, dayCode, startLat, startLon, endLat, endLon, id, boardingInfo);
+
+        return ApiResponseUtil.SuccessApiResponse("ok", List.of(boardingInfo));
     }
 }
