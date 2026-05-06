@@ -38,12 +38,15 @@ public class Alarm {
     private LocalDateTime startTime;    // 일정 날짜 (최초 알림 시점)
     private Boolean deleted = false;
     private Integer prepareTime;        // 사용자 지정 준비시간 (분)
+    private String startName;
+    private String endName;
+    private Integer actualTime=0;
 
     @Builder
     public Alarm(Member member, Route route,
                  String title, String checklist,
                  Integer interval,LocalDateTime arrivalTime, LocalDateTime startTime,
-                 Integer prepareTime) {
+                 Integer prepareTime,String startName,String endName,Integer actualTime) {
         this.member = member;
         this.route = route;
         this.title = title;
@@ -53,6 +56,9 @@ public class Alarm {
         this.startTime = startTime;
         this.prepareTime = prepareTime;
         this.createdAt = LocalDateTime.now();
+        this.startName=startName;
+        this.endName=endName;
+        this.actualTime=actualTime;
     }
 
     // ── 편의 접근자 ────────────────────────────────────────────────────────────
@@ -73,7 +79,9 @@ public class Alarm {
         this.title = title;
         this.checklist = checklist;
     }
-
+    public void updateActualTime(Integer actualTime){
+        this.actualTime=actualTime;
+    }
     public void updateDeleted() {
         this.deleted = !this.deleted;
     }

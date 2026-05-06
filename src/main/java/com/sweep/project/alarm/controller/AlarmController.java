@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -146,11 +147,26 @@ public class AlarmController {
     }
 
     @Operation(summary = "알람 변경사항 체크", description = "특정 알람의 변경사항을 유저가 보았음을 업데이트 합니다. fire and forget 방식으로" +
-            "프론트는 해당 api 로 request만 보내고 잊어버리면 됩니다.")
+            "프론트는 해당 api 로 request만 보내고 잊어버리면 됩니다.---->당분간 무시해주세요 고도화 단계입니다.")
     @PostMapping("/needCheck/{alarmId}")
     public void needCheckUpdateWithFireAndForget(
             @Parameter(description = "변경사항 확인한 알람 ID", required = true, example = "1")
             @PathVariable Long alarmId){
             alarmService.fireAndForgetUpdate(alarmId);
+    }
+
+    @Operation(summary = "지하철 알람의 경우 실질 시간 업데이트",description = "알람의 경우 actualtime이 초기값이" +
+            "0인대 그런 케이스의 경우 처음 조회시에 boarding info를 기반으로 실질시간을 계산하고 나서 서버로 전송해주시면됩니다. " +
+            "그러면 알람에 actualtime이 업데이트됩니다")
+    @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
+            required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
+    @PostMapping("/update/actualTime/{alarmId}/{actualTime}")
+    public ApiResponseUtil<String> updateActualTime(
+            @Parameter(description = "실질 시간 업데이트할 알람 id", required = true, example = "1")
+            @PathVariable Long alarmId,
+            @Parameter(description = "실질 시간", required = true, example = "1")
+            @PathVariable(name = "actualTime") Integer actualTime){
+        alarmService.updateAlarmActualTime(alarmId,actualTime);
+        return ApiResponseUtil.SuccessApiResponse("실질 시간 업데이트 성공",null);
     }
 }

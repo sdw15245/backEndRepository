@@ -41,6 +41,15 @@ public class AlarmDetailResponse {
     @Schema(description = "알람 생성 시각", example = "2024-05-20T12:00:00")
     private final LocalDateTime createdAt;
 
+    @Schema(description = "출발지명")
+    private final String startName;
+
+    @Schema(description = "도착지명")
+    private final String endName;
+
+    @Schema(description = "전철의 경우 실질적으로 걸리는 시간")
+    private final Integer actualTime;
+
     // ── Route 정보 ───────────────────────────────────────────────────────────
 
     @Schema(description = "경로 ID", example = "10")
@@ -68,6 +77,8 @@ public class AlarmDetailResponse {
     @Schema(description = "ODsay API 단일 경로 JSON (TrafficResponse 직렬화 원문)")
     private final String routeData;
 
+
+
     public AlarmDetailResponse(Alarm alarm) {
         this.alarmId     = alarm.getAlarmId();
         this.title       = alarm.getTitle();
@@ -78,6 +89,9 @@ public class AlarmDetailResponse {
         this.prepareTime = alarm.getPrepareTime();
         this.needCheck   = alarm.getNeedCheck();
         this.createdAt   = alarm.getCreatedAt();
+        this.startName=alarm.getStartName();
+        this.endName=alarm.getEndName();
+        this.actualTime=alarm.getActualTime();
 
         Route route = alarm.getRoute();
         this.routeId=route.getId();
