@@ -158,6 +158,8 @@ public class AlarmController {
     @Operation(summary = "지하철 알람의 경우 실질 시간 업데이트",description = "알람의 경우 actualtime이 초기값이" +
             "0인대 그런 케이스의 경우 처음 조회시에 boarding info를 기반으로 실질시간을 계산하고 나서 서버로 전송해주시면됩니다. " +
             "그러면 알람에 actualtime이 업데이트됩니다")
+    @Parameter(name = "Authorization", description = "JWT 액세스 토큰 (Bearer 형식)",
+            required = true, example = "Bearer [tokenvalue]", in = ParameterIn.HEADER)
     @PostMapping("/update/actualTime/{alarmId}/{actualTime}")
     public ApiResponseUtil<String> updateActualTime(
             @Parameter(description = "실질 시간 업데이트할 알람 id", required = true, example = "1")
