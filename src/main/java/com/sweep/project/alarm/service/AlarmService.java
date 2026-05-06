@@ -86,7 +86,7 @@ public class AlarmService {
 
             List<AlarmSummaryResponse> alarmSummaryResponses=
                     alarms.subList(1,alarms.size()).stream().map(AlarmSummaryResponse::new)
-                    .toList();
+                            .toList();
 
             return new AlarmListResponse(alarmDetailResponse,alarmSummaryResponses);
         }
