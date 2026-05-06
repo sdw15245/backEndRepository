@@ -56,12 +56,6 @@ public class RoutePreviewDto {
         )
         private String laneName;
 
-        @Schema(description = "구간 출발 지점 이름. 지하철은 역명, 버스는 정류장명")
-        private String startName;
-
-        @Schema(description = "구간 도착 지점 이름. 지하철은 역명, 버스는 정류장명")
-        private String endName;
-
         @Schema(
                 description = "카카오맵 strokeColor에 사용할 HEX 색상 코드. "
                         + "지하철은 공식 노선색, 버스는 유형별 색상, 도보는 회색(#94a3b8)입니다.",

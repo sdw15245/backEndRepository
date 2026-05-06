@@ -14,6 +14,18 @@ public class RouteColorResolver {
     private static final String DEFAULT_BUS_COLOR = "#3b82f6";
     private static final String DEFAULT_SUBWAY_COLOR = "#f97316";
 
+    private static final Map<Integer, String> SUBWAY_TYPE_COLOR_MAP = Map.ofEntries(
+            Map.entry(1, "#0052A4"),
+            Map.entry(2, "#00A84D"),
+            Map.entry(3, "#EF7C1C"),
+            Map.entry(4, "#00A4E3"),
+            Map.entry(5, "#996CAC"),
+            Map.entry(6, "#CD7C2F"),
+            Map.entry(7, "#747F00"),
+            Map.entry(8, "#E6186C"),
+            Map.entry(9, "#BDB092")
+    );
+
     /** 지하철 노선명 기준 색상 테이블 */
     private static final Map<String, String> SUBWAY_COLOR_MAP = Map.ofEntries(
             Map.entry("1호선", "#0052A4"),
@@ -50,6 +62,15 @@ public class RouteColorResolver {
         return switch (trafficType) {
             case 1 -> resolveSubwayColor(laneName);
             case 2 -> BUS_TYPE_COLOR_MAP.getOrDefault(busType, DEFAULT_BUS_COLOR);
+            case 3 -> DEFAULT_WALK_COLOR;
+            default -> DEFAULT_BUS_COLOR;
+        };
+    }
+
+    public String resolveColorByLaneType(int trafficType, int laneType) {
+        return switch (trafficType) {
+            case 1 -> SUBWAY_TYPE_COLOR_MAP.getOrDefault(laneType, DEFAULT_SUBWAY_COLOR);
+            case 2 -> BUS_TYPE_COLOR_MAP.getOrDefault(laneType, DEFAULT_BUS_COLOR);
             case 3 -> DEFAULT_WALK_COLOR;
             default -> DEFAULT_BUS_COLOR;
         };
