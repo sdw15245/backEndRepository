@@ -58,7 +58,12 @@ public class RoutePreviewMetaRedisService {
         if (meta.getMapObj() == null || meta.getMapObj().isBlank()) {
             return;
         }
-
+        /**
+         *
+         * /route/boarding 진행 할때마다 새로운 uuid값으로 데이터가 저장되는 구조인대
+         * 이러면 너무많이 데이터가 쌓이기도하고, trafficresponse를 캐싱해둔 데이터하고 연결되지가 않는다.
+         * 그냥 mapobj값을 키값으로 하는게 좋아보이는대.
+         * */
         String routePreviewId = UUID.randomUUID().toString();
         assignRoutePreviewId(route, routePreviewId);
 
