@@ -34,9 +34,7 @@ public class BusOdsayService extends AbstractRouteSearch {
     @GeoLocationCache
     @Override
     public List<BusRoute> getRoutes(PathSearchType type,double startLat,double startLon,double endLat,double endLon) {
-        log.info("start");
         OdsayRouteResponse response = callRouteApi(PATH_TYPE_BUS.pathType,startLat,startLon,endLat,endLon);
-        log.info("response:{}",response);
         return parseBusRoutes(response);
     }
 

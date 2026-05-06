@@ -115,3 +115,5 @@ management:
     web:
       exposure:
         include: "prometheus"
+fcm:
+  image: ${FCM_IMAGE}

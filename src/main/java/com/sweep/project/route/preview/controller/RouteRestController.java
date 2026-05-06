@@ -2,6 +2,7 @@ package com.sweep.project.route.preview.controller;
 
 import com.sweep.project.route.preview.dto.RoutePreviewDto;
 import com.sweep.project.route.preview.service.RoutePreviewService;
+import com.sweep.project.util.ApiResponseUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -138,6 +141,14 @@ public class RouteRestController {
         String decodedMapObj = URLDecoder.decode(mapObj, StandardCharsets.UTF_8);
         log.info("decodingmapobj:{}",decodedMapObj);
         return routePreviewService.getRoutePreview(decodedMapObj);
+    }
+
+    @GetMapping("/preview/by-route/{routePreviewId}")
+    public ResponseEntity<?> getPreviewByRouteId(@PathVariable String routePreviewId) {
+        return routePreviewService.getRoutePreviewByRouteId(routePreviewId)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.GONE)
+                        .body(ApiResponseUtil.FailApiResponse("route preview session expired")));
     }
 }
 

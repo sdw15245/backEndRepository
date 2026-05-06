@@ -278,6 +278,46 @@ public class RouteRedisService {
                 toTypeName(type), timeHHmm, dayCode, startLat, startLon, endLat, endLon);
     }
 
+    /**
+     * routeId 로 단일 boarding info 를 조회한다.
+     * 기존 boarding hash({@code boarding:{type}:{HHmm}:{dayCode}:{coords}}) 에서
+     * 특정 field(routeId) 만 읽는다.
+     */
+    public Optional<BoardingInfo> findBoardingById(PathSearchType type,
+                                                   String timeHHmm, int dayCode,
+                                                   double startLat, double startLon,
+                                                   double endLat, double endLon,
+                                                   Long routeId) {
+        String key = buildBoardingKey(type, timeHHmm, dayCode, startLat, startLon, endLat, endLon);
+        String json = (String) stringRedisTemplate.opsForHash().get(key, String.valueOf(routeId));
+        if (json == null) {
+            log.debug("[Redis][boarding] 단일 미스 key={} routeId={}", key, routeId);
+            return Optional.empty();
+        }
+        log.info("[Redis][boarding] 단일 히트 key={} routeId={}", key, routeId);
+        return Optional.ofNullable(deserialize(json, BOARDING_TYPE, key));
+    }
+
+    /**
+     * routeId 에 대응하는 단일 boarding info 를 기존 boarding hash 에 저장한다.
+     * 이미 해당 field 가 존재하면 덮어쓰지 않는다.
+     */
+    public void saveBoardingById(PathSearchType type,
+                                 String timeHHmm, int dayCode,
+                                 double startLat, double startLon,
+                                 double endLat, double endLon,
+                                 Long routeId, BoardingInfo boardingInfo) {
+        String key = buildBoardingKey(type, timeHHmm, dayCode, startLat, startLon, endLat, endLon);
+        try {
+            String json = redisObjectMapper.writeValueAsString(boardingInfo);
+            stringRedisTemplate.opsForHash().putIfAbsent(key, String.valueOf(routeId), json);
+            stringRedisTemplate.expire(key, BOARDING_TTL_SECONDS, TimeUnit.SECONDS);
+            log.info("[Redis][boarding] 단일 저장 key={} routeId={}", key, routeId);
+        } catch (JsonProcessingException e) {
+            log.error("[Redis][boarding] 직렬화 실패 routeId={}", routeId, e);
+        }
+    }
+
     // ── 버스 정류소 순번(ord) 캐시 ────────────────────────────────────────────
 
     /**

@@ -1,5 +1,6 @@
 package com.sweep.project.alarm.service;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -18,6 +19,7 @@ public class AlarmScheduler {
     private final Job alarmPublishJob;
 
     /** 매 정각 삭제되지 않은 RouteTicket 을 FCM 토큰과 조합해 RabbitMQ 에 적재한다. */
+    @PostConstruct
     @Scheduled(cron = "0 0 0 * * *")
     public void readyOnMessage() {
         try {

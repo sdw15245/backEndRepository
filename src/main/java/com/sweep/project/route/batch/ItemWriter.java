@@ -43,10 +43,10 @@ public class ItemWriter implements org.springframework.batch.item.ItemWriter<Rou
             List<? extends TrafficResponse> trafficResponses =
                     trafficRouteStragy.getRoutes(
                             parsed.getType(),
-                            parsed.getStartX(),
                             parsed.getStartY(),
-                            parsed.getEndX(),
-                            parsed.getEndY()
+                            parsed.getStartX(),
+                            parsed.getEndY(),
+                            parsed.getEndX()
                     );
 
 

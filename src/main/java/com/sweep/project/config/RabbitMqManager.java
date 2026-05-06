@@ -16,6 +16,7 @@ import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.api.ChannelAwareBatchMessageListener;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
@@ -46,14 +47,17 @@ public class RabbitMqManager {
     private final ConcurrentHashMap<String, SimpleMessageListenerContainer> map
             =new ConcurrentHashMap<>();
 
+    @Value("${fcm.image}")
+    private String fcmImage;
+
     @PostConstruct
     public void setting(){
         //createBasicSetting();
         alarmSetting();
     }
     public void alarmSetting(){
-        final String title = "test1";
-        final String body = "test2";
+        final String title = "아내일점심은 뭐먹을까";
+        final String body = "내일 점심은 가지무침이다.";
         Queue actionQueue=createAlramQueue();
         Binding binding= BindingBuilder.bind(actionQueue)
                 .to(createAlarmExchange())
@@ -73,6 +77,7 @@ public class RabbitMqManager {
                                 .setNotification(Notification.builder()
                                         .setTitle(title)
                                         .setBody(body)
+                                        .setImage(fcmImage)
                                         /*
                                         * 나중에 알람타입에 따라서 보내는 알람도 변경--> fix의경우 notification이아닌 다른 형태의 알람으로
                                         * */

@@ -36,6 +36,13 @@ public class AlarmService {
         Route route = routeRepository.findById(req.routeId())
                 .orElseThrow(() -> new RuntimeException("없는 route입니다"));
 
+        LocalDateTime now=LocalDateTime.now();
+
+        if(now.isAfter(req.arrivalTime())||now.isAfter(req.startTime())
+                ||req.arrivalTime().isBefore(req.startTime())){
+            throw new RuntimeException("등록 할수없는 시간대입니다");
+        }
+
         Alarm alarm = Alarm.builder()
                 .member(securityMemberReadService.securityMemberRead())
                 .route(route)
@@ -45,6 +52,8 @@ public class AlarmService {
                 .startTime(req.startTime())
                 .prepareTime(req.prepareTime())
                 .interval(req.interval())
+                .startName(req.startName())
+                .endName(req.endName())
                 .build();
         alarmRepository.save(alarm);
 
@@ -91,11 +100,24 @@ public class AlarmService {
         return new AlarmDetailResponse(alarm);
     }
 
+    public void updateAlarmActualTime(Long alarmId,Integer actualTime){
+        Alarm alarm = alarmRepository.findById(alarmId)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
+        alarm.updateActualTime(actualTime);
+    }
+
     public void updateAlarm(Long alarmId, AlarmUpdateRequest req) {
         Alarm alarm = alarmRepository.findById(alarmId)
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
         Route route = routeRepository.findById(req.routeId())
                 .orElseThrow(() -> new RuntimeException("없는 route입니다"));
+
+        LocalDateTime now=LocalDateTime.now();
+        if(now.isAfter(req.arrivalTime())||now.isAfter(req.startTime())
+                ||req.arrivalTime().isBefore(req.startTime())){
+            throw new RuntimeException("등록 할수없는 시간대입니다");
+        }
+
         alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
         Integer newInterval = req.interval() != null ? req.interval() : alarm.getInterval();
         alarm.updateAlarm(route, req.arrivalTime(), req.startTime(), req.prepareTime(), newInterval, req.title(), req.checklist());

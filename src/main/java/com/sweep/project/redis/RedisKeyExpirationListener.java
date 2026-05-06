@@ -32,9 +32,29 @@ public class RedisKeyExpirationListener extends KeyExpirationEventMessageListene
     public void onMessage(Message message, byte[] pattern) {
         log.info("expired key:{}",message.toString());
         if(message.toString().startsWith(prefixKey)){
-            String [] keys=message.toString().split("-");
+           /* String [] keys=message.toString().split("-");
             com.sweep.project.redis.RedisMessageDto redisMessageDto = new RedisMessageDto(
-                    keys[1],keys[2],keys[3], keys[4] );
+                    keys[1],keys[2],keys[3], keys[4] ); */
+            String key = message.toString();
+            String[] parts = key.split("-");
+
+            String memberId = parts[1];
+            String alarmId = parts[2];
+            String alarmType = parts[3];
+
+            int tokenEndExclusive = parts.length;
+            if ("prepare".equals(alarmType) && parts.length > 5) {
+                tokenEndExclusive = parts.length - 1; // 마지막 prepare index 제거
+            }
+
+            String token = String.join(
+                    "-",
+                    java.util.Arrays.copyOfRange(parts, 4, tokenEndExclusive)
+            );
+
+            RedisMessageDto redisMessageDto = new RedisMessageDto(
+                    memberId, alarmId, alarmType, token
+            );
             rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY,redisMessageDto, msg -> {
                 msg.getMessageProperties().setContentType(MessageProperties.CONTENT_TYPE_JSON);
                 return msg;

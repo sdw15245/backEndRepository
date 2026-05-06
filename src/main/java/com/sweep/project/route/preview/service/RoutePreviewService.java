@@ -3,6 +3,7 @@ package com.sweep.project.route.preview.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sweep.project.route.preview.dto.RoutePreviewDto;
+import com.sweep.project.route.preview.dto.RoutePreviewMetaDto;
 import com.sweep.project.route.preview.util.RouteColorResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
@@ -33,15 +35,24 @@ public class RoutePreviewService {
     private String odsayApiKey;
 
     private final RouteColorResolver routeColorResolver;
+    private final RoutePreviewMetaRedisService routePreviewMetaRedisService;
 
-    // 프로젝트 전역 RestTemplate Bean이 없을 수 있어 내부에서 기본 인스턴스를 사용한다.
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * mapObj를 받아 ODsay loadLane을 호출하고 RoutePreviewDto로 반환한다.
      */
     public RoutePreviewDto getRoutePreview(String mapObj) {
+        return getRoutePreview(mapObj, null);
+    }
+
+    public Optional<RoutePreviewDto> getRoutePreviewByRouteId(String routePreviewId) {
+        return routePreviewMetaRedisService.find(routePreviewId)
+                .map(meta -> getRoutePreview(meta.getMapObj(), meta));
+    }
+
+    private RoutePreviewDto getRoutePreview(String mapObj, RoutePreviewMetaDto meta) {
         String prefixedMapObj = mapObj.startsWith("0:0@") ? mapObj : "0:0@" + mapObj;
 
         String url = UriComponentsBuilder.fromHttpUrl(LOAD_LANE_URL)
@@ -51,7 +62,7 @@ public class RoutePreviewService {
 
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            return toRoutePreview(response.getBody());
+            return toRoutePreview(response.getBody(), meta);
         } catch (HttpStatusCodeException e) {
             if (e.getStatusCode().value() == 404) {
                 throw new ResponseStatusException(NOT_FOUND, "loadLane 데이터를 찾을 수 없습니다.", e);
@@ -65,6 +76,10 @@ public class RoutePreviewService {
     }
 
     private RoutePreviewDto toRoutePreview(String json) throws Exception {
+        return toRoutePreview(json, null);
+    }
+
+    private RoutePreviewDto toRoutePreview(String json, RoutePreviewMetaDto meta) throws Exception {
         JsonNode root = objectMapper.readTree(json);
         JsonNode resultNode = root.path("result");
         JsonNode lanesNode = resultNode.path("lane");
@@ -75,11 +90,20 @@ public class RoutePreviewService {
 
         List<RoutePreviewDto.SegmentDto> segments = new ArrayList<>();
         List<RoutePreviewDto.PointDto> allPoints = new ArrayList<>();
+        List<RoutePreviewMetaDto.CachedSegmentDto> cachedSegments =
+                meta != null && meta.getSegments() != null ? meta.getSegments() : List.of();
+        int cachedIndex = 0;
 
         for (JsonNode laneNode : lanesNode) {
-            int trafficType = laneNode.path("trafficType").asInt(0);
-            int busType = extractBusType(laneNode);
-            String laneName = extractLaneName(laneNode);
+            int trafficType = extractTrafficType(laneNode);
+            RoutePreviewMetaDto.CachedSegmentDto cachedSegment =
+                    findNextCachedSegment(cachedSegments, cachedIndex, trafficType);
+            if (cachedSegment != null) {
+                cachedIndex = cachedSegments.indexOf(cachedSegment) + 1;
+            }
+
+            int busType = extractLaneType(laneNode, cachedSegment);
+            String laneName = extractLaneName(laneNode, cachedSegment);
             List<RoutePreviewDto.PointDto> points = extractPoints(laneNode);
 
             if (points.isEmpty()) {
@@ -92,6 +116,8 @@ public class RoutePreviewService {
                     .trafficType(trafficType)
                     .trafficTypeLabel(toTrafficTypeLabel(trafficType))
                     .laneName(laneName)
+                    .startName(cachedSegment != null ? cachedSegment.getStartName() : null)
+                    .endName(cachedSegment != null ? cachedSegment.getEndName() : null)
                     .color(routeColorResolver.resolveColor(trafficType, laneName, busType))
                     .strokeStyle(routeColorResolver.resolveStrokeStyle(trafficType))
                     .points(points)
@@ -109,14 +135,31 @@ public class RoutePreviewService {
                 .build();
     }
 
-    private int extractBusType(JsonNode laneNode) {
+    private int extractTrafficType(JsonNode laneNode) {
+        if (laneNode.has("trafficType")) {
+            return laneNode.path("trafficType").asInt(0);
+        }
+        return switch (laneNode.path("class").asInt(0)) {
+            case 1 -> 2;
+            case 2 -> 1;
+            default -> 0;
+        };
+    }
+
+    private int extractLaneType(JsonNode laneNode, RoutePreviewMetaDto.CachedSegmentDto cachedSegment) {
+        if (cachedSegment != null && cachedSegment.getBusType() != null) {
+            return cachedSegment.getBusType();
+        }
         if (laneNode.has("busType")) {
             return laneNode.path("busType").asInt(0);
         }
         return laneNode.path("type").asInt(0);
     }
 
-    private String extractLaneName(JsonNode laneNode) {
+    private String extractLaneName(JsonNode laneNode, RoutePreviewMetaDto.CachedSegmentDto cachedSegment) {
+        if (cachedSegment != null && cachedSegment.getLaneName() != null && !cachedSegment.getLaneName().isBlank()) {
+            return cachedSegment.getLaneName();
+        }
         if (laneNode.hasNonNull("name") && !laneNode.path("name").asText().isBlank()) {
             return laneNode.path("name").asText();
         }
@@ -127,6 +170,20 @@ public class RoutePreviewService {
             return laneNode.path("laneName").asText();
         }
         return "";
+    }
+
+    private RoutePreviewMetaDto.CachedSegmentDto findNextCachedSegment(
+            List<RoutePreviewMetaDto.CachedSegmentDto> cachedSegments,
+            int startIndex,
+            int trafficType
+    ) {
+        for (int i = startIndex; i < cachedSegments.size(); i++) {
+            RoutePreviewMetaDto.CachedSegmentDto cachedSegment = cachedSegments.get(i);
+            if (cachedSegment.getTrafficType() == trafficType) {
+                return cachedSegment;
+            }
+        }
+        return null;
     }
 
     /**

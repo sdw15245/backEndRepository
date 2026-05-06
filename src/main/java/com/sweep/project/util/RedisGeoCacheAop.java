@@ -87,7 +87,7 @@ public class RedisGeoCacheAop {
 
             // ── Step 2. DB 조회 ──────────────────────────────────────────────
             List<RouteDbService.RouteWithId> dbRoutes =
-                    routeDbService.findRoutes(type, startLon, startLat, endLon, endLat);
+                    routeDbService.findRoutes(type, startLat, startLon, endLat, endLon);
 
             if (!dbRoutes.isEmpty()) {
                 log.info("[GeoCache] DB 히트 count={} type={}", dbRoutes.size(), type);
@@ -118,7 +118,7 @@ public class RedisGeoCacheAop {
                     .map(this::serializeQuietly)
                     .collect(Collectors.toList());
             // DB 저장
-            List<Long> routeIds = routeDbService.saveAll(type, startLon, startLat, endLon, endLat, routeJsonList);
+            List<Long> routeIds = routeDbService.saveAll(type, startLat, startLon, endLat, endLon, routeJsonList);
             log.info("[GeoCache] DB 저장 완료 routeIds={} type={}", routeIds, type);
 
 
@@ -126,8 +126,15 @@ public class RedisGeoCacheAop {
             for (int i = 0; i < result.size() && i < routeIds.size(); i++) {
                 result.get(i).setRouteId(routeIds.get(i));
             }
+            /**
+             *
+             * 로직이 비효율적이긴한대 route자체가 identitiy라 saveall 메서드도 비효휼적 나중에 개선좀 해야될것으로보임.
+             * */
+            routeJsonList=result.stream()
+                    .map(this::serializeQuietly)
+                    .collect(Collectors.toList());
 
-
+            routeDbService.updateJsons(routeIds,routeJsonList);
 
             // Redis 캐싱
             routeRedisService.saveIfAbsent(type, startLat, startLon, endLat, endLon, routeIds, routeJsonList);

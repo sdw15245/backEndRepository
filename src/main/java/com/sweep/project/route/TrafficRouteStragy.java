@@ -56,6 +56,16 @@ public class TrafficRouteStragy {
                 .toList();
     }
 
+    /**
+     * 단일 경로에 대해 AOP 캐싱 없이 boarding info 를 직접 계산한다.
+     * {@code /detail/{id}} 엔드포인트에서 routeId 기반 캐싱을 직접 제어할 때 사용한다.
+     */
+    public BoardingInfo getBoardingInfoSingle(PathSearchType pathSearchType,
+                                              LocalDateTime desiredArrivalTime,
+                                              TrafficResponse route) {
+        return findStrategy(pathSearchType).getBoardingInfo(desiredArrivalTime, route);
+    }
+
     private AbstractRouteSearch findStrategy(PathSearchType pathSearchType) {
         return strategies.stream()
                 .filter(s -> s.checkType(pathSearchType))
