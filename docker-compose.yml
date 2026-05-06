@@ -24,6 +24,7 @@ services:
       FIREBASE_TOKEN_PATH: ${FIREBASE_TOKEN_PATH}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      FCM_IMAGE: ${FCM_IMAGE}
     networks:
       - sweepMap-network
     restart: always
