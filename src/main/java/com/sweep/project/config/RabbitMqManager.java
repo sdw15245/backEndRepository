@@ -48,7 +48,7 @@ public class RabbitMqManager {
             =new ConcurrentHashMap<>();
 
     @Value("${fcm.image}")
-    private final String fcmImage;
+    private String fcmImage;
 
     @PostConstruct
     public void setting(){
