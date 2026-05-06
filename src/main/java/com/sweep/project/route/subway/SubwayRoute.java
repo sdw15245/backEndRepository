@@ -17,9 +17,6 @@ public class SubwayRoute implements TrafficResponse {
     @Schema(description = "DB Route ID", example = "10")
     private Long routeId;
 
-    @Schema(description = "노선 미리보기 조회용 임시 ID. /api/route/preview/by-route/{routePreviewId} 호출 시 사용")
-    private String routePreviewId;
-
     @Schema(description = "총 소요 시간 (분)", example = "42")
     private int totalTime;
     @Schema(description = "요금 (원)", example = "1500")
