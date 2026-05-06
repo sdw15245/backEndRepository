@@ -43,12 +43,12 @@ public record AlarmCreateRequest(
         @Schema(description = "준비 알람 발송 간격 (분), 기본값 20", example = "20", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
         @Min(0) @Max(240)
-        Integer interval
-        @Min(1) @Max(240)
         Integer interval,
+
         @Schema(description = "출발지 명칭",requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank
         String startName,
+
         @Schema(description = "도착지 명칭", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank
         String endName
