@@ -2,8 +2,8 @@ package com.sweep.project.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.messaging.*;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import com.sweep.project.alarm.batch.AlarmMessageDto;
 import com.sweep.project.fcm.service.FcmSendService;
 import com.sweep.project.fcm.service.FcmTokenService;
@@ -74,14 +74,38 @@ public class RabbitMqManager {
                         com.sweep.project.redis.RedisMessageDto redisMessageDto= objectMapper.readValue(x.getBody(), RedisMessageDto.class);
                         Message message = Message.builder()
                                 .setToken(redisMessageDto.getToken())
-                                .setNotification(Notification.builder()
-                                        .setTitle(title)
-                                        .setBody(body)
-                                        .setImage(fcmImage)
-                                        /*
-                                        * 나중에 알람타입에 따라서 보내는 알람도 변경--> fix의경우 notification이아닌 다른 형태의 알람으로
-                                        * */
+                                // Android 설정
+                                .setAndroidConfig(AndroidConfig.builder()
+                                        .setNotification(AndroidNotification.builder()
+                                                .setTitle(title)
+                                                .setBody(body)
+                                                .setIcon(fcmImage)
+                                                .setColor("#FF5722")
+                                                .setChannelId("default")
+                                                .build())
                                         .build())
+                                // iOS 설정
+                                .setApnsConfig(ApnsConfig.builder()
+                                        .setFcmOptions(ApnsFcmOptions.builder()
+                                                .setImage(fcmImage)
+                                                .build())
+                                        .setAps(Aps.builder()
+                                                .setAlert(ApsAlert.builder()
+                                                        .setTitle(title)
+                                                        .setBody(body)
+                                                        .build())
+                                                .setSound("default")
+                                                .build())
+                                        .build())
+                                // Web 설정
+                                .setWebpushConfig(WebpushConfig.builder()
+                                        .setNotification(WebpushNotification.builder()
+                                                .setTitle(title)
+                                                .setBody(body)
+                                                .setIcon(fcmImage)
+                                                .build())
+                                        .build())
+
                                 .build();
                         messages1.add(message);
                         metadata.add(redisMessageDto);
