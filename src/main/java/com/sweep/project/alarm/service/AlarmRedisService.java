@@ -67,10 +67,11 @@ public class AlarmRedisService {
             for (int i = 0; i < count; i++) {
                 LocalDateTime triggerTime = prepareStart.plusMinutes((long) i * interval);
                 if (triggerTime.isAfter(now)) {
+                    int remainingMinutes = prepareTime - (i * interval);
                     long ttl = Duration.between(now, triggerTime).toMillis();
                     for (String token : tokens) {
                         entries.add(new RedisAlarmEntry(
-                                buildKey(memberId, alarmId, AlarmType.PREPARE, token, i), ttl));
+                                buildKey(memberId, alarmId, AlarmType.PREPARE, token, i, remainingMinutes), ttl));
                     }
                 }
             }
@@ -120,7 +121,19 @@ public class AlarmRedisService {
     }
 
     private String buildKey(Long memberId, Long alarmId, AlarmType type, String token, Integer idx) {
+        return buildKey(memberId, alarmId, type, token, idx, null);
+    }
+
+    private String buildKey(Long memberId, Long alarmId, AlarmType type, String token, Integer idx,
+                            Integer remainingMinutes) {
         String base = "alarm-" + memberId + "-" + alarmId + "-" + type.name().toLowerCase() + "-" + token;
+        if (type == AlarmType.PREPARE && remainingMinutes != null) {
+            if (idx != null && idx == 0) {
+                base = "alarm-" + memberId + "-" + alarmId + "-prepare-start-" + token;
+            } else {
+                base = "alarm-" + memberId + "-" + alarmId + "-prepare-remain-" + remainingMinutes + "-" + token;
+            }
+        }
         return idx != null ? base + "-" + idx : base;
     }
 
