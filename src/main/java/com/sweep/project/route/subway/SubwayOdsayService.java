@@ -48,7 +48,9 @@ public class SubwayOdsayService extends AbstractRouteSearch {
 
         // 최초 출발 시각 = desiredArrivalTime - totalTime
         LocalDateTime currentDateTime = desiredArrivalTime.minusMinutes(subwayRoute.getTotalTime());
+        log.info("최초 출발 시각:{}",currentDateTime);
         LocalTime recommendedDepartureTime = currentDateTime.toLocalTime();
+        log.info("권장 출발 시각:{}",recommendedDepartureTime);
 
         int dayCode = switch (desiredArrivalTime.getDayOfWeek()) {
             case SATURDAY -> 2;
@@ -61,22 +63,40 @@ public class SubwayOdsayService extends AbstractRouteSearch {
         int pendingWalkMinutes = 0;
         LocalTime pendingPlatformArrival = null;
 
-        for (RouteSegment seg : subwayRoute.getSegments()) {
+        List<RouteSegment> segments = subwayRoute.getSegments();
+        log.info("=== getBoardingInfo 시작 === segments 총 개수:{}", segments.size());
+        for (int i = 0; i < segments.size(); i++) {
+            RouteSegment seg = segments.get(i);
+            log.info("[Segment {}] type={}", i, seg.getClass().getSimpleName());
+        }
+
+        for (int segIdx = 0; segIdx < segments.size(); segIdx++) {
+            RouteSegment seg = segments.get(segIdx);
 
             if (seg instanceof WalkSegment walkSeg) {
+                log.info("[Segment {}] WalkSegment - distance={}m, sectionTime={}분, 처리 후 currentDateTime={}",
+                        segIdx, walkSeg.getDistance(), walkSeg.getSectionTime(),
+                        currentDateTime.plusMinutes(walkSeg.getSectionTime()));
                 // 도보 구간: 소요 시간만큼 currentDateTime 진행
                 pendingWalkMinutes = walkSeg.getSectionTime();
                 currentDateTime = currentDateTime.plusMinutes(walkSeg.getSectionTime());
                 pendingPlatformArrival = currentDateTime.toLocalTime();
 
             } else if (seg instanceof SubwayRoute.SubwaySegment subwaySeg) {
+                log.info("[Segment {}] SubwaySegment - 노선={}, subwayCode={}, 출발역={}(ID:{}), 도착역={}(ID:{}), 역수={}, 소요={}분, 거리={}m, wayCode={}",
+                        segIdx, subwaySeg.getLineName(), subwaySeg.getSubwayCode(),
+                        subwaySeg.getStartStation(), subwaySeg.getStartID(),
+                        subwaySeg.getEndStation(), subwaySeg.getEndId(),
+                        subwaySeg.getStationCount(), subwaySeg.getSectionTime(),
+                        subwaySeg.getDistance(), subwaySeg.getWayCode());
+
                 // 탑승역 도착 시각(= currentDateTime)을 출발 기준으로 조회
                 String timeHHmm = currentDateTime.format(DateTimeFormatter.ofPattern("HHmm"));
 
                 SubwayPathScheduleResponse scheduleResponse =
                         callScheduleApi(subwaySeg.getStartID(), subwaySeg.getEndId(), dayCode, timeHHmm);
 
-                log.info("path size:{}",scheduleResponse.getResult().getPath().size());
+                logScheduleResponse(scheduleResponse, segIdx);
                 // 응답에서 지하철 subPath 추출 (departureTime·arrivalTime 사용)
                 SubwayPathScheduleResponse.SubPath subwaySubPath = findSubwaySubPath(scheduleResponse);
 
@@ -118,6 +138,76 @@ public class SubwayOdsayService extends AbstractRouteSearch {
     }
 
     // ── private helpers ──────────────────────────────────────────────────────
+
+    private void logScheduleResponse(SubwayPathScheduleResponse scheduleResponse, int segIdx) {
+        if (scheduleResponse == null || scheduleResponse.getResult() == null) {
+            log.warn("[Segment {}] scheduleResponse 또는 result가 null", segIdx);
+            return;
+        }
+        SubwayPathScheduleResponse.Result result = scheduleResponse.getResult();
+        log.info("[Segment {}] ScheduleResponse - notificationCode={}, notificationMessage={}",
+                segIdx, result.getNotificationCode(), result.getNotificationMessage());
+
+        List<SubwayPathScheduleResponse.Path> paths = result.getPath();
+        if (paths == null || paths.isEmpty()) {
+            log.warn("[Segment {}] path 목록이 비어있음", segIdx);
+            return;
+        }
+        log.info("[Segment {}] path 개수={}", segIdx, paths.size());
+
+        for (int pi = 0; pi < paths.size(); pi++) {
+            SubwayPathScheduleResponse.Path path = paths.get(pi);
+            log.info("[Segment {}][Path {}] pathType={} (1=최단시간, 2=최소환승)", segIdx, pi, path.getPathType());
+
+            SubwayPathScheduleResponse.Info info = path.getInfo();
+            if (info != null) {
+                log.info("[Segment {}][Path {}] Info - day={}, totalTime={}분, subwayTravelTime={}분, exchangeWalkTime={}분, " +
+                                "첫출발역={}, 최종도착역={}, departureTime={}, arrivalTime={}, transferCount={}, cardFare={}원, stationCount={}",
+                        segIdx, pi,
+                        info.getDay(), info.getTotalTime(), info.getSubwayTravelTime(), info.getExchangeWalkTime(),
+                        info.getFirstStartStationName(), info.getLastEndStationName(),
+                        info.getDepartureTime(), info.getArrivalTime(),
+                        info.getTransferCount(), info.getCardFare(), info.getStationCount());
+            }
+
+            List<SubwayPathScheduleResponse.SubPath> subPaths = path.getSubPath();
+            if (subPaths == null || subPaths.isEmpty()) {
+                log.warn("[Segment {}][Path {}] subPath 목록이 비어있음", segIdx, pi);
+                continue;
+            }
+            log.info("[Segment {}][Path {}] subPath 개수={}", segIdx, pi, subPaths.size());
+
+            for (int spi = 0; spi < subPaths.size(); spi++) {
+                SubwayPathScheduleResponse.SubPath sp = subPaths.get(spi);
+                String movingTypeName = switch (sp.getMovingType()) {
+                    case SUBWAY_MOVING_TYPE -> "지하철";
+                    case WALK_MOVING_TYPE   -> "환승도보";
+                    default                 -> "기타(" + sp.getMovingType() + ")";
+                };
+                log.info("[Segment {}][Path {}][SubPath {}] movingType={}({}), 노선={}, " +
+                                "startName={}(ID:{}), endName={}(ID:{}), sectionTime={}분, stopStationCount={}, " +
+                                "departureTime={}, arrivalTime={}, wayName={}, isExpressLane={}, wayCode={}",
+                        segIdx, pi, spi,
+                        sp.getMovingType(), movingTypeName, sp.getLaneName(),
+                        sp.getStartName(), sp.getStartID(),
+                        sp.getEndName(), sp.getEndID(),
+                        sp.getSectionTime(), sp.getStopStationCount(),
+                        sp.getDepartureTime(), sp.getArrivalTime(),
+                        sp.getWayName(), sp.getIsExpressLane(), sp.getWayCode());
+
+                if (sp.getPrevTrain() != null) {
+                    SubwayPathScheduleResponse.PrevNextTrain prev = sp.getPrevTrain();
+                    log.info("[Segment {}][Path {}][SubPath {}] prevTrain - 노선={}, departureTime={}, wayName={}, isExpress={}",
+                            segIdx, pi, spi, prev.getLaneName(), prev.getDepartureTime(), prev.getWayName(), prev.getIsExpressLane());
+                }
+                if (sp.getNextTrain() != null) {
+                    SubwayPathScheduleResponse.PrevNextTrain next = sp.getNextTrain();
+                    log.info("[Segment {}][Path {}][SubPath {}] nextTrain - 노선={}, departureTime={}, wayName={}, isExpress={}",
+                            segIdx, pi, spi, next.getLaneName(), next.getDepartureTime(), next.getWayName(), next.getIsExpressLane());
+                }
+            }
+        }
+    }
 
     /** 스케줄 응답에서 pathType=1 경로의 첫 번째 지하철 subPath를 반환한다. */
     private SubwayPathScheduleResponse.SubPath findSubwaySubPath(SubwayPathScheduleResponse scheduleResponse) {
