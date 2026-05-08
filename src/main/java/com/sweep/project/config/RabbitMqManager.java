@@ -149,13 +149,18 @@ public class RabbitMqManager {
 
     private String buildNotificationBody(RedisMessageDto dto) {
         if ("prepare".equalsIgnoreCase(dto.getAlarmType())) {
+            String base;
             if (Boolean.TRUE.equals(dto.getPrepareStart())) {
-                return "지금 준비 시작해야 해요";
+                base = "지금 준비 시작해야 해요";
+            } else if (dto.getRemainingMinutes() != null) {
+                base = dto.getRemainingMinutes() + "분 후에 출발해야 해요!";
+            } else {
+                base = "지금 준비 시작해야 해요";
             }
-            if (dto.getRemainingMinutes() != null) {
-                return dto.getRemainingMinutes() + "분 후에 출발해야 해요!";
+            if (dto.getCheckList() != null && !dto.getCheckList().isBlank()) {
+                base = base + "\n준비물: " + dto.getCheckList();
             }
-            return "지금 준비 시작해야 해요";
+            return base;
         }
         if ("departure".equalsIgnoreCase(dto.getAlarmType())) {
             return "지금 출발해야 해요!";

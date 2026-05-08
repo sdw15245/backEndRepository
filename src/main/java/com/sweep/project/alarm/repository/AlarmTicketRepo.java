@@ -71,7 +71,8 @@ public class AlarmTicketRepo {
                         alarm.prepareTime,
                         alarm.interval,
                         alarm.arrivalTime,
-                        route.totalTime))
+                        route.totalTime,
+                        alarm.checklist))
                 .from(alarm)
                 .join(alarm.route, route)
                 .where(alarm.deleted.isFalse()
