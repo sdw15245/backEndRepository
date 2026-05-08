@@ -39,7 +39,7 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
             String member = objectMapper.writeValueAsString(customOAuth2User.getMember());
             redisUserInfoService.setLoginUserInfo(customOAuth2User.getId(), member, refreshToken);
             //response.addHeader(AUTHORIZATION, TOKEN_PREFIX.getValue() + accessToken);
-            response.sendRedirect("https://hodadak.vercel.app?token=" + accessToken);
+            response.sendRedirect("https://hodadak.vercel.app/?token=" + accessToken);
             log.info("{} 유저에대한 로그인이 정상적으로 되었습니다", customOAuth2User.getEmail());
         }
         catch (Exception e){
