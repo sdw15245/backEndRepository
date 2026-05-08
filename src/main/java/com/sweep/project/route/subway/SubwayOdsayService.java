@@ -76,6 +76,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 SubwayPathScheduleResponse scheduleResponse =
                         callScheduleApi(subwaySeg.getStartID(), subwaySeg.getEndId(), dayCode, timeHHmm);
 
+                log.info("path size:{}",scheduleResponse.getResult().getPath().size());
                 // 응답에서 지하철 subPath 추출 (departureTime·arrivalTime 사용)
                 SubwayPathScheduleResponse.SubPath subwaySubPath = findSubwaySubPath(scheduleResponse);
 
@@ -240,6 +241,8 @@ public class SubwayOdsayService extends AbstractRouteSearch {
      * @param timeHHmm  도착 희망 시각 (HHmm 형식, MODE=2 도착 기준)
      */
     private SubwayPathScheduleResponse callScheduleApi(int sid, int eid, int dayCode, String timeHHmm) {
+        log.info("time:{} sid:{} eid{}",timeHHmm,sid,eid);
+
         String url = UriComponentsBuilder.fromHttpUrl(SCHEDULE_SEARCH_URL)
                 .queryParam("apiKey", odsayKey)
                 .queryParam("lang", 0)
