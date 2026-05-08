@@ -63,7 +63,7 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), req.interval(), tokens);
+                    totalTime, req.prepareTime(), req.interval(), tokens, req.checklist());
         }
 
         return new AlarmDetailResponse(alarm);
@@ -128,7 +128,7 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), newInterval, tokens);
+                    totalTime, req.prepareTime(), newInterval, tokens, req.checklist());
         }
     }
 

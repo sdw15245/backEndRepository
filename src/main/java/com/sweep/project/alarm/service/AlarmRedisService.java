@@ -40,7 +40,8 @@ public class AlarmRedisService {
                                        LocalDateTime arrivalTime,
                                        int totalTime,
                                        Integer prepareTime, Integer interval,
-                                       List<String> tokens) {
+                                       List<String> tokens,
+                                       String checkList) {
         if (tokens.isEmpty()) return;
         if (!startTime.toLocalDate().equals(LocalDate.now())) return;
 
@@ -79,6 +80,9 @@ public class AlarmRedisService {
 
         if (!entries.isEmpty()) {
             bulkSet(entries);
+            long departureTtl = departureTime.isAfter(now)
+                    ? Duration.between(now, departureTime).toMillis() : 0L;
+            storeChecklist(memberId, alarmId, checkList, departureTtl);
             log.info("[AlarmRedisService] 당일 알람 등록 — alarmId={} 키 수={}", alarmId, entries.size());
         }
     }
@@ -104,6 +108,12 @@ public class AlarmRedisService {
             }
             return null;
         });
+    }
+
+    private void storeChecklist(Long memberId, Long alarmId, String checkList, long ttlMillis) {
+        if (checkList == null || checkList.isBlank() || ttlMillis <= 0) return;
+        String key = "alarm-" + memberId + "-" + alarmId + "-checklist";
+        redisTemplate.opsForValue().set(key, checkList, Duration.ofMillis(ttlMillis));
     }
 
     private void scanAndDelete(String pattern) {

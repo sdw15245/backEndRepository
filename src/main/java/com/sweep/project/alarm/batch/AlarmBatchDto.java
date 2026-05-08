@@ -32,4 +32,7 @@ public class AlarmBatchDto {
 
     @Schema(description = "Route.totalTime(분). null이면 소요 시간 불명으로 해당 알람 스킵", example = "45")
     private Integer totalTime;
+
+    @Schema(description = "준비물 입니다", example = "준비물 덩어리")
+    private String checkList;
 }
