@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record AlarmUpdateRequest(
         @Schema(description = "경로 ID. 경로를 변경할 경우 새 경로 ID, 유지할 경우 기존 경로 ID 전달", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -35,12 +36,12 @@ public record AlarmUpdateRequest(
 
         @Schema(description = "출발 전 준비 시간 (분). 기본값 60, 수정 안할경우 기존값 전달", example = "60", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
-        @Min(1) @Max(1440)
+        @Min(0) @Max(1440)
         Integer prepareTime,
 
         @Schema(description = "준비 알람 발송 간격 (분). 기본값 20, 수정 안할경우 기존값 전달", example = "20", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull
-        @Min(1) @Max(240)
+        @Min(0) @Max(240)
         Integer interval
 
 

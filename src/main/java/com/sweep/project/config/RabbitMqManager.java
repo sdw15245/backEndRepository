@@ -56,8 +56,7 @@ public class RabbitMqManager {
         alarmSetting();
     }
     public void alarmSetting(){
-        final String title = "아내일점심은 뭐먹을까";
-        final String body = "내일 점심은 가지무침이다.";
+        final String title = buildNotificationTitle();
         Queue actionQueue=createAlramQueue();
         Binding binding= BindingBuilder.bind(actionQueue)
                 .to(createAlarmExchange())
@@ -72,6 +71,7 @@ public class RabbitMqManager {
                 messages.stream().forEach(x -> {
                     try {
                         com.sweep.project.redis.RedisMessageDto redisMessageDto= objectMapper.readValue(x.getBody(), RedisMessageDto.class);
+                        String body = buildNotificationBody(redisMessageDto);
                         Message message = Message.builder()
                                 .setToken(redisMessageDto.getToken())
                                 .setNotification(Notification.builder()
@@ -89,7 +89,7 @@ public class RabbitMqManager {
                         throw new RuntimeException(e);
                     }
                 });
-                fcmSendService.bulkPushWithLog(messages1, metadata, title, body);
+                fcmSendService.bulkPushWithLog(messages1, metadata);
             }
             catch (Exception e){
                 throw new RuntimeException(e.getMessage());
@@ -113,6 +113,30 @@ public class RabbitMqManager {
 
 
 
+    }
+
+    // 사용자에게 뜨는 문구 입니다.
+    // *참고* FCM Notification에서 .setTitle(" ")에 들어가면 제목 영역이어서 자동으로 UI에서 굵게 표시된다고합니다.
+
+
+    private String buildNotificationTitle() {
+        return "호다닥 알림";
+    }
+
+    private String buildNotificationBody(RedisMessageDto dto) {
+        if ("prepare".equalsIgnoreCase(dto.getAlarmType())) {
+            if (Boolean.TRUE.equals(dto.getPrepareStart())) {
+                return "지금 준비 시작해야 해요";
+            }
+            if (dto.getRemainingMinutes() != null) {
+                return dto.getRemainingMinutes() + "분 후에 출발해야 해요!";
+            }
+            return "지금 준비 시작해야 해요";
+        }
+        if ("departure".equalsIgnoreCase(dto.getAlarmType())) {
+            return "지금 출발해야 해요!";
+        }
+        return "알림이 도착했어요";
     }
 
     /*public void createBasicSetting(){
