@@ -93,6 +93,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 // 탑승역 도착 시각(= currentDateTime)을 출발 기준으로 조회
                 String timeHHmm = currentDateTime.format(DateTimeFormatter.ofPattern("HHmm"));
 
+                sleepQuietly(150);
                 SubwayPathScheduleResponse scheduleResponse =
                         callScheduleApi(subwaySeg.getStartID(), subwaySeg.getEndId(), dayCode, timeHHmm);
 
@@ -131,7 +132,8 @@ public class SubwayOdsayService extends AbstractRouteSearch {
         }
 
         if (segmentBoardingInfos.isEmpty()) {
-            throw new IllegalStateException("스케줄 응답에서 지하철 구간 정보를 파싱할 수 없습니다.");
+            log.warn("스케줄 응답에서 지하철 구간 정보를 파싱할 수 없어 빈 결과를 반환합니다.");
+            return new MixedBoardingInfo(recommendedDepartureTime, new ArrayList<>());
         }
 
         return new MixedBoardingInfo(recommendedDepartureTime, segmentBoardingInfos);
@@ -344,6 +346,14 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 .toUriString();
         log.info("subway path schedule url: {}", url);
         return restTemplate.getForObject(url, SubwayPathScheduleResponse.class);
+    }
+
+    private void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
