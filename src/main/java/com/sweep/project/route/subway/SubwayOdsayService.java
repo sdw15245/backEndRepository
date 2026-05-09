@@ -63,7 +63,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 && result.finalArrivalTime().isAfter(desiredArrivalTime)) {
             log.info("실제 도착 시각({})이 희망 도착 시각({})을 초과 → 출발 시각을 10분 앞당겨 재계산",
                     result.finalArrivalTime(), desiredArrivalTime);
-            result = computeFromDeparture(startDateTime.minusMinutes(10), subwayRoute, dayCode);
+            result = computeFromDeparture(startDateTime.minusMinutes(15), subwayRoute, dayCode);
         }
 
         return result.boardingInfo();
