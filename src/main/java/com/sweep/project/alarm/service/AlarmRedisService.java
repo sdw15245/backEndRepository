@@ -67,6 +67,7 @@ public class AlarmRedisService {
             int count = prepareTime / interval;
             for (int i = 0; i < count; i++) {
                 LocalDateTime triggerTime = prepareStart.plusMinutes((long) i * interval);
+                log.info("triggerTime is after now?:{}-{}-{}",triggerTime.isAfter(now),triggerTime,now);
                 if (triggerTime.isAfter(now)) {
                     int remainingMinutes = prepareTime - (i * interval);
                     long ttl = Duration.between(now, triggerTime).toMillis();
