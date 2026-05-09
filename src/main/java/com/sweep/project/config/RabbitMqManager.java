@@ -95,6 +95,7 @@ public class RabbitMqManager {
                                                         .setBody(body)
                                                         .build())
                                                 .setSound("default")
+                                                .setMutableContent(true)
                                                 .build())
                                         .build())
                                 // Web 설정
