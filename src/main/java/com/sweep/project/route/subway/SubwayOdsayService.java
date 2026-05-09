@@ -61,9 +61,9 @@ public class SubwayOdsayService extends AbstractRouteSearch {
 
         if (!result.boardingInfo().getSegmentBoardingInfos().isEmpty()
                 && result.finalArrivalTime().isAfter(desiredArrivalTime)) {
-            log.info("실제 도착 시각({})이 희망 도착 시각({})을 초과 → 출발 시각을 20분 앞당겨 재계산",
+            log.info("실제 도착 시각({})이 희망 도착 시각({})을 초과 → 출발 시각을 10분 앞당겨 재계산",
                     result.finalArrivalTime(), desiredArrivalTime);
-            result = computeFromDeparture(startDateTime.minusMinutes(20), subwayRoute, dayCode);
+            result = computeFromDeparture(startDateTime.minusMinutes(10), subwayRoute, dayCode);
         }
 
         return result.boardingInfo();
@@ -111,7 +111,7 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 SubwayPathScheduleResponse scheduleResponse =
                         callScheduleApi(subwaySeg.getStartID(), subwaySeg.getEndId(), dayCode, timeHHmm);
 
-                logScheduleResponse(scheduleResponse, segIdx);
+                //logScheduleResponse(scheduleResponse, segIdx);
                 SubwayPathScheduleResponse.SubPath subwaySubPath = findSubwaySubPath(scheduleResponse);
 
                 boolean isTransferPoint = firstSubwayFound;
