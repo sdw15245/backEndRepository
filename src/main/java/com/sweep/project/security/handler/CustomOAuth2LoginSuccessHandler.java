@@ -41,7 +41,6 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
             response.sendRedirect("http://localhost:5173/oauth2/callback?token="+accessToken);
             //response.addHeader(AUTHORIZATION, TOKEN_PREFIX.getValue() + accessToken);
             // response.sendRedirect("https://hodadak.vercel.app/oauth2/callback?token=" + accessToken);
-
             log.info("{} 유저에대한 로그인이 정상적으로 되었습니다", customOAuth2User.getEmail());
         }
         catch (Exception e){
