@@ -84,6 +84,7 @@ public class AlarmTicketRepo {
     }
 
     public List<Alarm> getAlarmList(Long memberId, LocalDateTime currentTime){
+        currentTime=currentTime.minusMinutes(20L);
         return jpaQueryFactory.select(alarm)
                 .from(alarm)
                 .join(member)
