@@ -54,36 +54,6 @@ public class RouteColorResolver {
             Map.entry(117, "#4E67A5")
     );
 
-    /** 지하철 노선명 기준 색상 테이블 */
-    private static final Map<String, String> SUBWAY_COLOR_MAP = Map.ofEntries(
-            Map.entry("1호선", "#263C96"),
-            Map.entry("2호선", "#3CB44A"),
-            Map.entry("3호선", "#F06E00"),
-            Map.entry("4호선", "#2C9EDE"),
-            Map.entry("5호선", "#8936E0"),
-            Map.entry("6호선", "#B5500B"),
-            Map.entry("7호선", "#697215"),
-            Map.entry("8호선", "#E51E6E"),
-            Map.entry("9호선", "#D1A62C"),
-            Map.entry("GTX-A", "#905A89"),
-            Map.entry("공항철도", "#73B6E4"),
-            Map.entry("자기부상철도", "#FF9D5A"),
-            Map.entry("경의중앙선", "#76BC9E"),
-            Map.entry("에버라인", "#77C371"),
-            Map.entry("경춘선", "#08AF7B"),
-            Map.entry("신분당선", "#A71E31"),
-            Map.entry("의정부경전철", "#FF9D27"),
-            Map.entry("경강선", "#2673F2"),
-            Map.entry("우이신설선", "#C6C100"),
-            Map.entry("서해선", "#8BC53F"),
-            Map.entry("김포골드라인", "#96710A"),
-            Map.entry("수인분당선", "#EBA900"),
-            Map.entry("신림선", "#4E67A5"),
-            Map.entry("대경선", "#2673F2"),
-            Map.entry("동해선", "#799BC9"),
-            Map.entry("부산-김해경전철", "#80499C")
-    );
-
     /** ODsay busType 기준 색상 테이블 */
     private static final Map<Integer, String> BUS_TYPE_COLOR_MAP = Map.ofEntries(
             Map.entry(0, "#3B82F6"),
@@ -106,18 +76,6 @@ public class RouteColorResolver {
             Map.entry(30, "#00A6B4")
     );
 
-    /**
-     * trafficType + laneName + busType에 따라 라인 색상을 반환한다.
-     */
-    public String resolveColor(int trafficType, String laneName, int busType) {
-        return switch (trafficType) {
-            case 1 -> resolveSubwayColor(laneName);
-            case 2 -> BUS_TYPE_COLOR_MAP.getOrDefault(busType, DEFAULT_BUS_COLOR);
-            case 3 -> DEFAULT_WALK_COLOR;
-            default -> DEFAULT_BUS_COLOR;
-        };
-    }
-
     public String resolveColorByLaneType(int trafficType, int laneType) {
         return switch (trafficType) {
             case 1 -> SUBWAY_TYPE_COLOR_MAP.getOrDefault(laneType, DEFAULT_SUBWAY_COLOR);
@@ -135,20 +93,6 @@ public class RouteColorResolver {
             return "shortdash";
         }
         return "solid";
-    }
-
-    private String resolveSubwayColor(String laneName) {
-        if (laneName == null || laneName.isBlank()) {
-            return DEFAULT_SUBWAY_COLOR;
-        }
-
-        // 노선명이 "수도권 2호선" 같이 붙어와도 포함 매칭으로 처리한다.
-        for (Map.Entry<String, String> entry : SUBWAY_COLOR_MAP.entrySet()) {
-            if (laneName.contains(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-        return DEFAULT_SUBWAY_COLOR;
     }
 }
 
