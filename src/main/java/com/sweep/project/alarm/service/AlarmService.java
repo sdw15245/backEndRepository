@@ -39,8 +39,8 @@ public class AlarmService {
         LocalDateTime now=LocalDateTime.now();
 
         if(now.isAfter(req.arrivalTime())||now.isAfter(req.startTime())
-                ||req.arrivalTime().isBefore(req.startTime())){
-            throw new RuntimeException("등록 할수없는 시간대입니다");
+                ||req.arrivalTime().isBefore(req.startTime())||req.interval()>req.prepareTime()){
+            throw new RuntimeException("등록 할수없는 시간대 혹은 조건입니다");
         }
 
         Alarm alarm = Alarm.builder()
@@ -63,7 +63,7 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), req.interval(), tokens, req.checklist());
+                    totalTime, req.prepareTime(), req.interval(), tokens, req.checklist(),now);
         }
 
         return new AlarmDetailResponse(alarm);
@@ -114,7 +114,7 @@ public class AlarmService {
 
         LocalDateTime now=LocalDateTime.now();
         if(now.isAfter(req.arrivalTime())||now.isAfter(req.startTime())
-                ||req.arrivalTime().isBefore(req.startTime())){
+                ||req.arrivalTime().isBefore(req.startTime())||req.interval()>req.prepareTime()){
             throw new RuntimeException("등록 할수없는 시간대입니다");
         }
 
@@ -128,7 +128,7 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), newInterval, tokens, req.checklist());
+                    totalTime, req.prepareTime(), newInterval, tokens, req.checklist(),now);
         }
     }
 

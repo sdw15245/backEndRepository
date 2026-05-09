@@ -41,11 +41,10 @@ public class AlarmRedisService {
                                        int totalTime,
                                        Integer prepareTime, Integer interval,
                                        List<String> tokens,
-                                       String checkList) {
+                                       String checkList,LocalDateTime now) {
         if (tokens.isEmpty()) return;
         if (!startTime.toLocalDate().equals(LocalDate.now())) return;
 
-        LocalDateTime now = LocalDateTime.now();
         LocalDateTime departureTime = arrivalTime.minusMinutes(totalTime);
         List<RedisAlarmEntry> entries = new ArrayList<>();
 
