@@ -42,21 +42,37 @@ public class SubwayOdsayService extends AbstractRouteSearch {
         return parseSubwayRoutes(response);
     }
 
+    private record ComputeResult(MixedBoardingInfo boardingInfo, LocalDateTime finalArrivalTime) {}
+
     @Override
     public MixedBoardingInfo getBoardingInfo(LocalDateTime desiredArrivalTime, TrafficResponse route) {
         SubwayRoute subwayRoute = (SubwayRoute) route;
-
-        // 최초 출발 시각 = desiredArrivalTime - totalTime
-        LocalDateTime currentDateTime = desiredArrivalTime.minusMinutes(subwayRoute.getTotalTime());
-        log.info("최초 출발 시각:{}",currentDateTime);
-        LocalTime recommendedDepartureTime = currentDateTime.toLocalTime();
-        log.info("권장 출발 시각:{}",recommendedDepartureTime);
 
         int dayCode = switch (desiredArrivalTime.getDayOfWeek()) {
             case SATURDAY -> 2;
             case SUNDAY   -> 3;
             default       -> 1;
         };
+
+        LocalDateTime startDateTime = desiredArrivalTime.minusMinutes(subwayRoute.getTotalTime());
+        log.info("최초 출발 시각:{}", startDateTime);
+
+        ComputeResult result = computeFromDeparture(startDateTime, subwayRoute, dayCode);
+
+        if (!result.boardingInfo().getSegmentBoardingInfos().isEmpty()
+                && result.finalArrivalTime().isAfter(desiredArrivalTime)) {
+            log.info("실제 도착 시각({})이 희망 도착 시각({})을 초과 → 출발 시각을 20분 앞당겨 재계산",
+                    result.finalArrivalTime(), desiredArrivalTime);
+            result = computeFromDeparture(startDateTime.minusMinutes(20), subwayRoute, dayCode);
+        }
+
+        return result.boardingInfo();
+    }
+
+    private ComputeResult computeFromDeparture(LocalDateTime startDateTime, SubwayRoute subwayRoute, int dayCode) {
+        LocalDateTime currentDateTime = startDateTime;
+        LocalTime recommendedDepartureTime = currentDateTime.toLocalTime();
+        log.info("권장 출발 시각:{}", recommendedDepartureTime);
 
         List<SegmentBoardingInfo> segmentBoardingInfos = new ArrayList<>();
         boolean firstSubwayFound = false;
@@ -77,7 +93,6 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                 log.info("[Segment {}] WalkSegment - distance={}m, sectionTime={}분, 처리 후 currentDateTime={}",
                         segIdx, walkSeg.getDistance(), walkSeg.getSectionTime(),
                         currentDateTime.plusMinutes(walkSeg.getSectionTime()));
-                // 도보 구간: 소요 시간만큼 currentDateTime 진행
                 pendingWalkMinutes = walkSeg.getSectionTime();
                 currentDateTime = currentDateTime.plusMinutes(walkSeg.getSectionTime());
                 pendingPlatformArrival = currentDateTime.toLocalTime();
@@ -90,7 +105,6 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                         subwaySeg.getStationCount(), subwaySeg.getSectionTime(),
                         subwaySeg.getDistance(), subwaySeg.getWayCode());
 
-                // 탑승역 도착 시각(= currentDateTime)을 출발 기준으로 조회
                 String timeHHmm = currentDateTime.format(DateTimeFormatter.ofPattern("HHmm"));
 
                 sleepQuietly(150);
@@ -98,7 +112,6 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                         callScheduleApi(subwaySeg.getStartID(), subwaySeg.getEndId(), dayCode, timeHHmm);
 
                 logScheduleResponse(scheduleResponse, segIdx);
-                // 응답에서 지하철 subPath 추출 (departureTime·arrivalTime 사용)
                 SubwayPathScheduleResponse.SubPath subwaySubPath = findSubwaySubPath(scheduleResponse);
 
                 boolean isTransferPoint = firstSubwayFound;
@@ -112,7 +125,6 @@ public class SubwayOdsayService extends AbstractRouteSearch {
                     segmentBoardingInfos.add(segInfo);
                 }
 
-                // arrivalTime 기준으로 currentDateTime 갱신 (없으면 sectionTime 폴백)
                 if (subwaySubPath != null) {
                     LocalTime arrivalTime = parseHHmmss(subwaySubPath.getArrivalTime());
                     if (arrivalTime != null) {
@@ -133,10 +145,10 @@ public class SubwayOdsayService extends AbstractRouteSearch {
 
         if (segmentBoardingInfos.isEmpty()) {
             log.warn("스케줄 응답에서 지하철 구간 정보를 파싱할 수 없어 빈 결과를 반환합니다.");
-            return new MixedBoardingInfo(recommendedDepartureTime, new ArrayList<>());
+            return new ComputeResult(new MixedBoardingInfo(recommendedDepartureTime, new ArrayList<>()), currentDateTime);
         }
 
-        return new MixedBoardingInfo(recommendedDepartureTime, segmentBoardingInfos);
+        return new ComputeResult(new MixedBoardingInfo(recommendedDepartureTime, segmentBoardingInfos), currentDateTime);
     }
 
     // ── private helpers ──────────────────────────────────────────────────────
