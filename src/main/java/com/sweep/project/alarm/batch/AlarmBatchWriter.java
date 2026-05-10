@@ -64,6 +64,7 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
                 .collect(Collectors.groupingBy(AlarmBatchDto::getMemberId));
 
         List<RedisAlarmEntry> entries = new ArrayList<>();
+        List<ChecklistEntry> checklistEntries = new ArrayList<>();
 
         for (Map.Entry<Long, List<AlarmBatchDto>> entry : grouped.entrySet()) {
             Long memberId = entry.getKey();
@@ -80,11 +81,22 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
 
             for (AlarmBatchDto dto : entry.getValue()) {
                 collectEntries(dto, memberId, tokens, entries);
+                if (dto.getTotalTime() != null && dto.getArrivalTime() != null
+                        && dto.getCheckList() != null && !dto.getCheckList().isBlank()) {
+                    LocalDateTime departureTime = dto.getArrivalTime().minusMinutes(dto.getTotalTime());
+                    long ttl = Math.max(0L, Duration.between(schedulerRunAt, departureTime).toMillis());
+                    checklistEntries.add(new ChecklistEntry(
+                            "alarm-" + memberId + "-" + dto.getAlarmId() + "-checklist",
+                            dto.getCheckList(), ttl));
+                }
             }
         }
 
         if (!entries.isEmpty()) {
             bulkSet(entries);
+        }
+        if (!checklistEntries.isEmpty()) {
+            storeChecklists(checklistEntries);
         }
 
         log.info("[AlarmWriter] 청크 처리 완료 — 알람 수={} Redis 키 수={}", chunk.size(), entries.size());
@@ -145,6 +157,16 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
         });
     }
 
+    private void storeChecklists(List<ChecklistEntry> checklistEntries) {
+        redisTemplate.executePipelined((org.springframework.data.redis.connection.RedisConnection conn) -> {
+            for (ChecklistEntry e : checklistEntries) {
+                conn.pSetEx(e.key().getBytes(StandardCharsets.UTF_8),
+                        e.ttlMillis(), e.value().getBytes(StandardCharsets.UTF_8));
+            }
+            return null;
+        });
+    }
+
     private String buildKey(Long memberId, Long alarmId, AlarmType type, String token, Integer idx) {
         return buildKey(memberId, alarmId, type, token, idx, null);
     }
@@ -163,4 +185,5 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
     }
 
     private record RedisAlarmEntry(String key, long ttlMillis) {}
+    private record ChecklistEntry(String key, String value, long ttlMillis) {}
 }

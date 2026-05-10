@@ -2,8 +2,8 @@ package com.sweep.project.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.messaging.*;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import com.sweep.project.alarm.batch.AlarmMessageDto;
 import com.sweep.project.fcm.service.FcmSendService;
 import com.sweep.project.fcm.service.FcmTokenService;
@@ -74,14 +74,39 @@ public class RabbitMqManager {
                         String body = buildNotificationBody(redisMessageDto);
                         Message message = Message.builder()
                                 .setToken(redisMessageDto.getToken())
-                                .setNotification(Notification.builder()
-                                        .setTitle(title)
-                                        .setBody(body)
-                                        .setImage(fcmImage)
-                                        /*
-                                        * 나중에 알람타입에 따라서 보내는 알람도 변경--> fix의경우 notification이아닌 다른 형태의 알람으로
-                                        * */
+                                // Android 설정
+                                .setAndroidConfig(AndroidConfig.builder()
+                                        .setNotification(AndroidNotification.builder()
+                                                .setTitle(title)
+                                                .setBody(body)
+                                                .setIcon(fcmImage)
+                                                .setColor("#FF5722")
+                                                .setChannelId("default")
+                                                .build())
                                         .build())
+                                // iOS 설정
+                                .setApnsConfig(ApnsConfig.builder()
+                                        .setFcmOptions(ApnsFcmOptions.builder()
+                                                .setImage(fcmImage)
+                                                .build())
+                                        .setAps(Aps.builder()
+                                                .setAlert(ApsAlert.builder()
+                                                        .setTitle(title)
+                                                        .setBody(body)
+                                                        .build())
+                                                .setSound("default")
+                                                .setMutableContent(true)
+                                                .build())
+                                        .build())
+                                // Web 설정
+                                .setWebpushConfig(WebpushConfig.builder()
+                                        .setNotification(WebpushNotification.builder()
+                                                .setTitle(title)
+                                                .setBody(body)
+                                                .setIcon(fcmImage)
+                                                .build())
+                                        .build())
+
                                 .build();
                         messages1.add(message);
                         metadata.add(redisMessageDto);
@@ -125,13 +150,18 @@ public class RabbitMqManager {
 
     private String buildNotificationBody(RedisMessageDto dto) {
         if ("prepare".equalsIgnoreCase(dto.getAlarmType())) {
+            String base;
             if (Boolean.TRUE.equals(dto.getPrepareStart())) {
-                return "지금 준비 시작해야 해요";
+                base = "지금 준비 시작해야 해요";
+            } else if (dto.getRemainingMinutes() != null) {
+                base = dto.getRemainingMinutes() + "분 후에 출발해야 해요!";
+            } else {
+                base = "지금 준비 시작해야 해요";
             }
-            if (dto.getRemainingMinutes() != null) {
-                return dto.getRemainingMinutes() + "분 후에 출발해야 해요!";
+            if (dto.getCheckList() != null && !dto.getCheckList().isBlank()) {
+                base = base + "\n준비물: " + dto.getCheckList();
             }
-            return "지금 준비 시작해야 해요";
+            return base;
         }
         if ("departure".equalsIgnoreCase(dto.getAlarmType())) {
             return "지금 출발해야 해요!";
