@@ -2,6 +2,7 @@ package com.sweep.project.route.mixed;
 
 import com.sweep.project.route.RouteSegment;
 import com.sweep.project.route.TrafficResponse;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.List;
@@ -14,21 +15,28 @@ import java.util.List;
 public class MixedRoute implements TrafficResponse {
 
     /** DB Route ID */
+    @Schema(description = "DB Route ID", example = "10")
     private Long routeId;
-
     /** 총 소요 시간 (분) */
+    @Schema(description = "총 소요 시간 (분)", example = "42")
     private int totalTime;
     /** 요금 (원) */
+    @Schema(description = "요금 (원)", example = "1500")
     private int payment;
     /** 환승 횟수 */
+    @Schema(description = "환승 횟수", example = "2")
     private int transferCount;
     /** 버스 탑승 횟수 */
+    @Schema(description = "버스 횟수", example = "2")
     private int busTransitCount;
     /** 지하철 탑승 횟수 */
+    @Schema(description = "전철 횟수", example = "2")
     private int subwayTransitCount;
     /** 총 도보 거리 (미터) */
+    @Schema(description = "총 도보 거리 (미터)", example = "320")
     private int totalWalk;
     /** 구간 목록 – trafficType으로 WalkSegment(3)/SubwaySegment(1)/BusSegment(2) 구분 */
+    @Schema(description = "구간 목록. 걷기,전철,버스 포함됨 순서 유지")
     private List<RouteSegment> segments;
     /** 노선별 그래픽 데이터 흭득시 첨부해야 하는값*/
     private String mapObj;
