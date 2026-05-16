@@ -117,9 +117,9 @@ public class RouteController {
     }
 
 
-    @Operation(summary = "알람 리스트 목록조회시에 subway,bus 타입인 지하철 시간표를 조회해서 보여줌." +
+    @Operation(summary = "특정 루트 id값에 대해서 subway타입인 지하철 시간표를 조회해서 보여줌." +
             " latestBoardingTime  이컬럼을 쓰씨면될거같습니다." +
-            "버스의 경우에는 구성되는 버스와,정류소 데이터를 기반으로 실제 도착 몇분전인지 2개까지 보여줍니다.")
+            "버스의 경우에는 구성되는 버스와,정류소 데이터를 기반으로 실제 도착 몇분전인지 최대 2개까지 보여줍니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "생성 성공",
                     headers = {
@@ -137,6 +137,7 @@ public class RouteController {
             in = ParameterIn.HEADER)
     @GetMapping("/detail/{id}")
     public ApiResponseUtil<List<BoardingInfo>> getSubwayBoardingInfo(
+            @Parameter(description = "경로 id값", required = true)
             @PathVariable(name = "id") Long id,
             @Parameter(description = "경로 탐색 유형. PATH_TYPE_ANYONE, PATH_TYPE_SUBWAY, PATH_TYPE_BUS", example = "PATH_TYPE_SUBWAY", required = true)
             @RequestParam PathSearchType type,

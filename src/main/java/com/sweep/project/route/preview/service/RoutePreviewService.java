@@ -2,8 +2,16 @@ package com.sweep.project.route.preview.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sweep.project.redis.RoutePreviewRedisService;
+import com.sweep.project.redis.RouteRedisService;
+import com.sweep.project.route.TrafficResponse;
+import com.sweep.project.route.bus.BusRoute;
+import com.sweep.project.route.domain.Route;
+import com.sweep.project.route.domain.RouteRepository;
+import com.sweep.project.route.mixed.MixedRoute;
 import com.sweep.project.route.preview.dto.RoutePreviewDto;
 import com.sweep.project.route.preview.util.RouteColorResolver;
+import com.sweep.project.route.subway.SubwayRoute;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +23,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_GATEWAY;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
-/**
- * ODsay loadLane 응답을 카카오맵 렌더링 DTO로 변환한다.
- */
 @Service
 @RequiredArgsConstructor
 public class RoutePreviewService {
@@ -33,15 +39,54 @@ public class RoutePreviewService {
     private String odsayApiKey;
 
     private final RouteColorResolver routeColorResolver;
+    private final RoutePreviewRedisService routePreviewRedisService;
+    private final RouteRedisService routeRedisService;
+    private final RouteRepository routeRepository;
+    private final RestTemplate restTemplate;
 
-    // 프로젝트 전역 RestTemplate Bean이 없을 수 있어 내부에서 기본 인스턴스를 사용한다.
-    private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    /**
-     * mapObj를 받아 ODsay loadLane을 호출하고 RoutePreviewDto로 반환한다.
-     */
     public RoutePreviewDto getRoutePreview(String mapObj) {
+        return routePreviewRedisService.find(mapObj)
+                .orElseGet(() -> {
+                    RoutePreviewDto dto = loadRoutePreview(mapObj, UUID.randomUUID().toString());
+                    routePreviewRedisService.save(mapObj, dto);
+                    return dto;
+                });
+    }
+
+    public RoutePreviewDto getRoutePreviewBySavedRouteId(Long routeId) {
+        return routePreviewRedisService.findByRouteId(routeId)
+                .orElseGet(() -> {
+                    Route route = routeRepository.findById(routeId)
+                            .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "route를 찾을 수 없습니다."));
+
+                    Optional<TrafficResponse> cachedRoute = routeRedisService.findOrCacheRoute(
+                            route.getType(),
+                            route.getStartY(),
+                            route.getStartX(),
+                            route.getEndY(),
+                            route.getEndX(),
+                            routeId,
+                            route.getRouteData()
+                    );
+
+                    String mapObj = cachedRoute
+                            .map(this::extractMapObj)
+                            .filter(value -> !value.isBlank())
+                            .orElseGet(() -> extractMapObj(route.getRouteData()));
+
+                    if (mapObj == null || mapObj.isBlank()) {
+                        throw new ResponseStatusException(NOT_FOUND, "routeData에 mapObj가 없습니다.");
+                    }
+
+                    RoutePreviewDto dto = loadRoutePreview(mapObj, String.valueOf(routeId));
+                    routePreviewRedisService.saveByRouteId(routeId, dto);
+                    return dto;
+                });
+    }
+
+    private RoutePreviewDto loadRoutePreview(String mapObj, String responseRouteId) {
         String prefixedMapObj = mapObj.startsWith("0:0@") ? mapObj : "0:0@" + mapObj;
 
         String url = UriComponentsBuilder.fromHttpUrl(LOAD_LANE_URL)
@@ -51,7 +96,7 @@ public class RoutePreviewService {
 
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-            return toRoutePreview(response.getBody());
+            return toRoutePreview(response.getBody(), responseRouteId);
         } catch (HttpStatusCodeException e) {
             if (e.getStatusCode().value() == 404) {
                 throw new ResponseStatusException(NOT_FOUND, "loadLane 데이터를 찾을 수 없습니다.", e);
@@ -64,10 +109,9 @@ public class RoutePreviewService {
         }
     }
 
-    private RoutePreviewDto toRoutePreview(String json) throws Exception {
+    private RoutePreviewDto toRoutePreview(String json, String responseRouteId) throws Exception {
         JsonNode root = objectMapper.readTree(json);
-        JsonNode resultNode = root.path("result");
-        JsonNode lanesNode = resultNode.path("lane");
+        JsonNode lanesNode = root.path("result").path("lane");
 
         if (!lanesNode.isArray() || lanesNode.isEmpty()) {
             throw new ResponseStatusException(NOT_FOUND, "ODsay loadLane 응답에 lane 정보가 없습니다.");
@@ -77,9 +121,8 @@ public class RoutePreviewService {
         List<RoutePreviewDto.PointDto> allPoints = new ArrayList<>();
 
         for (JsonNode laneNode : lanesNode) {
-            int trafficType = laneNode.path("trafficType").asInt(0);
-            int busType = extractBusType(laneNode);
-            String laneName = extractLaneName(laneNode);
+            int trafficType = extractTrafficType(laneNode);
+            int laneType = laneNode.path("type").asInt(0);
             List<RoutePreviewDto.PointDto> points = extractPoints(laneNode);
 
             if (points.isEmpty()) {
@@ -87,12 +130,11 @@ public class RoutePreviewService {
             }
 
             allPoints.addAll(points);
-
             segments.add(RoutePreviewDto.SegmentDto.builder()
                     .trafficType(trafficType)
                     .trafficTypeLabel(toTrafficTypeLabel(trafficType))
-                    .laneName(laneName)
-                    .color(routeColorResolver.resolveColor(trafficType, laneName, busType))
+                    .laneName("")
+                    .color(routeColorResolver.resolveColorByLaneType(trafficType, laneType))
                     .strokeStyle(routeColorResolver.resolveStrokeStyle(trafficType))
                     .points(points)
                     .build());
@@ -103,42 +145,52 @@ public class RoutePreviewService {
         }
 
         return RoutePreviewDto.builder()
-                .routeId(UUID.randomUUID().toString())
+                .routeId(responseRouteId)
                 .bounds(calculateBounds(allPoints))
                 .segments(segments)
                 .build();
     }
 
-    private int extractBusType(JsonNode laneNode) {
-        if (laneNode.has("busType")) {
-            return laneNode.path("busType").asInt(0);
+    private int extractTrafficType(JsonNode laneNode) {
+        if (laneNode.has("trafficType")) {
+            return laneNode.path("trafficType").asInt(0);
         }
-        return laneNode.path("type").asInt(0);
+        return switch (laneNode.path("class").asInt(0)) {
+            case 1 -> 2;
+            case 2 -> 1;
+            default -> 0;
+        };
     }
 
-    private String extractLaneName(JsonNode laneNode) {
-        if (laneNode.hasNonNull("name") && !laneNode.path("name").asText().isBlank()) {
-            return laneNode.path("name").asText();
+    private String extractMapObj(TrafficResponse route) {
+        if (route instanceof SubwayRoute subwayRoute) {
+            return subwayRoute.getMapObj();
         }
-        if (laneNode.hasNonNull("busNo") && !laneNode.path("busNo").asText().isBlank()) {
-            return laneNode.path("busNo").asText();
+        if (route instanceof BusRoute busRoute) {
+            return busRoute.getMapObj();
         }
-        if (laneNode.hasNonNull("laneName") && !laneNode.path("laneName").asText().isBlank()) {
-            return laneNode.path("laneName").asText();
+        if (route instanceof MixedRoute mixedRoute) {
+            return mixedRoute.getMapObj();
         }
         return "";
     }
 
-    /**
-     * loadLane 응답의 section/graphPos를 폭넓게 파싱한다.
-     */
+    private String extractMapObj(String routeData) {
+        if (routeData == null || routeData.isBlank()) {
+            return "";
+        }
+        try {
+            return objectMapper.readTree(routeData).path("mapObj").asText("");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private List<RoutePreviewDto.PointDto> extractPoints(JsonNode laneNode) {
         List<RoutePreviewDto.PointDto> points = new ArrayList<>();
 
-        // 1) lane.graphPos 직접 제공 케이스
         parseGraphPosNode(laneNode.path("graphPos"), points);
 
-        // 2) lane.section 배열 내부 graphPos 케이스
         JsonNode sectionNode = laneNode.path("section");
         if (sectionNode.isArray()) {
             for (JsonNode sec : sectionNode) {
@@ -147,15 +199,10 @@ public class RoutePreviewService {
             }
         }
 
-        // 3) graphPos가 배열 객체 형태로 내려오는 케이스
         parsePointArray(laneNode.path("graphPos"), points);
-
         return points;
     }
 
-    /**
-     * graphPos 문자열 예시: "127.01,37.50 127.02,37.51"
-     */
     private void parseGraphPosNode(JsonNode graphPosNode, List<RoutePreviewDto.PointDto> points) {
         if (!graphPosNode.isTextual()) {
             return;
@@ -178,14 +225,10 @@ public class RoutePreviewService {
                         .y(Double.parseDouble(xy[1]))
                         .build());
             } catch (NumberFormatException ignored) {
-                // 좌표 한 점이 깨져 있어도 전체 파싱은 계속한다.
             }
         }
     }
 
-    /**
-     * graphPos가 [{"x":127.0,"y":37.5}, ...] 형태일 때 처리한다.
-     */
     private void parsePointArray(JsonNode node, List<RoutePreviewDto.PointDto> points) {
         if (!node.isArray()) {
             return;
@@ -230,4 +273,3 @@ public class RoutePreviewService {
                 .build();
     }
 }
-

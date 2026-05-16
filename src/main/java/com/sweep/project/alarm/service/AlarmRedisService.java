@@ -40,11 +40,11 @@ public class AlarmRedisService {
                                        LocalDateTime arrivalTime,
                                        int totalTime,
                                        Integer prepareTime, Integer interval,
-                                       List<String> tokens) {
+                                       List<String> tokens,
+                                       String checkList,LocalDateTime now) {
         if (tokens.isEmpty()) return;
         if (!startTime.toLocalDate().equals(LocalDate.now())) return;
 
-        LocalDateTime now = LocalDateTime.now();
         LocalDateTime departureTime = arrivalTime.minusMinutes(totalTime);
         List<RedisAlarmEntry> entries = new ArrayList<>();
 
@@ -66,11 +66,13 @@ public class AlarmRedisService {
             int count = prepareTime / interval;
             for (int i = 0; i < count; i++) {
                 LocalDateTime triggerTime = prepareStart.plusMinutes((long) i * interval);
+                log.info("triggerTime is after now?:{}-{}-{}",triggerTime.isAfter(now),triggerTime,now);
                 if (triggerTime.isAfter(now)) {
+                    int remainingMinutes = prepareTime - (i * interval);
                     long ttl = Duration.between(now, triggerTime).toMillis();
                     for (String token : tokens) {
                         entries.add(new RedisAlarmEntry(
-                                buildKey(memberId, alarmId, AlarmType.PREPARE, token, i), ttl));
+                                buildKey(memberId, alarmId, AlarmType.PREPARE, token, i, remainingMinutes), ttl));
                     }
                 }
             }
@@ -78,6 +80,9 @@ public class AlarmRedisService {
 
         if (!entries.isEmpty()) {
             bulkSet(entries);
+            long departureTtl = departureTime.isAfter(now)
+                    ? Duration.between(now, departureTime).toMillis() : 0L;
+            storeChecklist(memberId, alarmId, checkList, departureTtl);
             log.info("[AlarmRedisService] 당일 알람 등록 — alarmId={} 키 수={}", alarmId, entries.size());
         }
     }
@@ -105,6 +110,12 @@ public class AlarmRedisService {
         });
     }
 
+    private void storeChecklist(Long memberId, Long alarmId, String checkList, long ttlMillis) {
+        if (checkList == null || checkList.isBlank() || ttlMillis <= 0) return;
+        String key = "alarm-" + memberId + "-" + alarmId + "-checklist";
+        redisTemplate.opsForValue().set(key, checkList, Duration.ofMillis(ttlMillis));
+    }
+
     private void scanAndDelete(String pattern) {
         try (Cursor<String> cursor = redisTemplate.scan(
                 ScanOptions.scanOptions().match(pattern).count(200).build())) {
@@ -120,7 +131,19 @@ public class AlarmRedisService {
     }
 
     private String buildKey(Long memberId, Long alarmId, AlarmType type, String token, Integer idx) {
+        return buildKey(memberId, alarmId, type, token, idx, null);
+    }
+
+    private String buildKey(Long memberId, Long alarmId, AlarmType type, String token, Integer idx,
+                            Integer remainingMinutes) {
         String base = "alarm-" + memberId + "-" + alarmId + "-" + type.name().toLowerCase() + "-" + token;
+        if (type == AlarmType.PREPARE && remainingMinutes != null) {
+            if (idx != null && idx == 0) {
+                base = "alarm-" + memberId + "-" + alarmId + "-prepare-start-" + token;
+            } else {
+                base = "alarm-" + memberId + "-" + alarmId + "-prepare-remain-" + remainingMinutes + "-" + token;
+            }
+        }
         return idx != null ? base + "-" + idx : base;
     }
 

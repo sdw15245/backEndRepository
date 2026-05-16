@@ -44,14 +44,17 @@ public class FcmSendService {
 
     public void bulkPush(List<Message> data){
         try {
-            firebaseMessaging.sendEach(data);
+            BatchResponse response = firebaseMessaging.sendEach(data);
+            log.info("FCM bulk send result success={}, failure={}",
+                    response.getSuccessCount(),
+                    response.getFailureCount());
         } catch (FirebaseMessagingException e) {
             throw new RuntimeException(e);
         }
     }
 
     // Firebase로 FCM 메시지 일괄 전송, 성공한 메시지만 발송이력 저장
-    public void bulkPushWithLog(List<Message> data, List<RedisMessageDto> metadata, String title, String body) {
+    public void bulkPushWithLog(List<Message> data, List<RedisMessageDto> metadata) {
         if (data.size() != metadata.size()) {
             throw new IllegalArgumentException("FCM 메시지와 로그 메타데이터 수가 일치하지 않습니다.");
         }
@@ -60,7 +63,7 @@ public class FcmSendService {
             BatchResponse response = firebaseMessaging.sendEach(data);
             List<SendResponse> sendResponses = response.getResponses();
             List<FcmSendLog> successLogs = IntStream.range(0, sendResponses.size())
-                    .mapToObj(i -> createSuccessLog(sendResponses.get(i), metadata.get(i), title, body))
+                    .mapToObj(i -> createSuccessLog(sendResponses.get(i), metadata.get(i)))
                     .flatMap(Optional::stream)
                     .toList();
 
@@ -70,8 +73,7 @@ public class FcmSendService {
         }
     }
 
-    private Optional<FcmSendLog> createSuccessLog(SendResponse sendResponse, RedisMessageDto logData,
-                                                  String title, String body) {
+    private Optional<FcmSendLog> createSuccessLog(SendResponse sendResponse, RedisMessageDto logData) {
         // 실패한 전송은 조회 이력에 남기지 않음
         if (!sendResponse.isSuccessful()) {
             log.warn("FCM 전송 실패: {}", sendResponse.getException().getMessage());
@@ -83,11 +85,31 @@ public class FcmSendService {
                 .alarmId(Long.valueOf(logData.getAlarmId()))
                 .alarmType(AlarmType.valueOf(logData.getAlarmType().toUpperCase()))
                 .token(logData.getToken())
-                .title(title)
-                .body(body)
+                .title(buildNotificationTitle())
+                .body(buildNotificationBody(logData))
                 .firebaseMessageId(sendResponse.getMessageId())
                 .sentAt(LocalDateTime.now())
                 .build());
+    }
+
+    private String buildNotificationTitle() {
+        return "호다닥 알림";
+    }
+
+    private String buildNotificationBody(RedisMessageDto dto) {
+        if ("prepare".equalsIgnoreCase(dto.getAlarmType())) {
+            if (Boolean.TRUE.equals(dto.getPrepareStart())) {
+                return "지금 준비 시작해야 해요";
+            }
+            if (dto.getRemainingMinutes() != null) {
+                return dto.getRemainingMinutes() + "분 후에 출발해야 해요!";
+            }
+            return "지금 준비 시작해야 해요";
+        }
+        if ("departure".equalsIgnoreCase(dto.getAlarmType())) {
+            return "지금 출발해야 해요!";
+        }
+        return "알림이 도착했어요";
     }
 }
 

@@ -139,5 +139,10 @@ public class RouteRestController {
         log.info("decodingmapobj:{}",decodedMapObj);
         return routePreviewService.getRoutePreview(decodedMapObj);
     }
+
+    @GetMapping("/preview/saved-route/{routeId}")
+    public RoutePreviewDto getPreviewBySavedRoute(@PathVariable Long routeId) {
+        return routePreviewService.getRoutePreviewBySavedRouteId(routeId);
+    }
 }
 
