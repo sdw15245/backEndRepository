@@ -4,6 +4,7 @@ import com.sweep.project.route.RouteSegment;
 import com.sweep.project.route.TrafficResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -12,6 +13,7 @@ import java.util.List;
  * segments 에 WalkSegment / SubwaySegment / BusSegment 가 순서대로 들어있다.
  */
 @Data
+@NoArgsConstructor
 public class MixedRoute implements TrafficResponse {
 
     /** DB Route ID */
