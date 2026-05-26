@@ -39,8 +39,8 @@ public class AlarmService {
         LocalDateTime now=LocalDateTime.now();
 
         if(now.isAfter(req.arrivalTime())||now.isAfter(req.startTime())
-                ||req.arrivalTime().isBefore(req.startTime())){
-            throw new RuntimeException("등록 할수없는 시간대입니다");
+                ||req.arrivalTime().isBefore(req.startTime())||req.interval()>req.prepareTime()){
+            throw new RuntimeException("등록 할수없는 시간대 혹은 조건입니다");
         }
 
         Alarm alarm = Alarm.builder()
@@ -63,7 +63,7 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), req.interval(), tokens);
+                    totalTime, req.prepareTime(), req.interval(), tokens, req.checklist(),now);
         }
 
         return new AlarmDetailResponse(alarm);
@@ -114,7 +114,7 @@ public class AlarmService {
 
         LocalDateTime now=LocalDateTime.now();
         if(now.isAfter(req.arrivalTime())||now.isAfter(req.startTime())
-                ||req.arrivalTime().isBefore(req.startTime())){
+                ||req.arrivalTime().isBefore(req.startTime())||req.interval()>req.prepareTime()){
             throw new RuntimeException("등록 할수없는 시간대입니다");
         }
 
@@ -128,9 +128,35 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), newInterval, tokens);
+                    totalTime, req.prepareTime(), newInterval, tokens, req.checklist(),now);
         }
     }
+
+    // 등록된 알림수정
+    public void updateAlarmSettings(Long alarmId, AlarmSettingsUpdateRequest req) {
+        Alarm alarm = alarmRepository.findById(alarmId)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 알람"));
+
+        if (req.interval() > req.prepareTime()) {
+            throw new RuntimeException("다시알림 간격은 준비시간보다 클 수 없습니다");
+        }
+
+        alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
+        alarm.updateSettings(req.prepareTime(), req.interval(), req.checklist());
+
+        Integer totalTime = alarm.getRoute().getTotalTime();
+        if (totalTime != null) {
+            LocalDateTime now = LocalDateTime.now();
+            List<String> tokens = fcmTokenRepository.findAllByMemberId(alarm.getMemberId())
+                    .stream().map(FcmToken::getToken).collect(Collectors.toList());
+            alarmRedisService.registerTodayIfFirable(
+                    alarm.getAlarmId(), alarm.getMemberId(),
+                    alarm.getStartTime(), alarm.getArrivalTime(),
+                    totalTime, req.prepareTime(), req.interval(),
+                    tokens, req.checklist(), now);
+        }
+    }
+
 
     public void fireAndForgetUpdate(Long alarmId){
         Alarm alarm = alarmRepository.findById(alarmId)

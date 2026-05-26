@@ -79,6 +79,14 @@ public class Alarm {
         this.title = title;
         this.checklist = checklist;
     }
+
+    // 등록된 알림 수정
+    public void updateSettings(Integer prepareTime, Integer interval, String checklist) {
+        this.prepareTime = prepareTime;
+        this.interval = interval;
+        this.checklist = checklist;
+    }
+
     public void updateActualTime(Integer actualTime){
         this.actualTime=actualTime;
     }

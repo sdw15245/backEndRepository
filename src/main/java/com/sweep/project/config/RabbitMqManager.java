@@ -2,8 +2,8 @@ package com.sweep.project.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.messaging.*;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
 import com.sweep.project.alarm.batch.AlarmMessageDto;
 import com.sweep.project.fcm.service.FcmSendService;
 import com.sweep.project.fcm.service.FcmTokenService;
@@ -56,8 +56,7 @@ public class RabbitMqManager {
         alarmSetting();
     }
     public void alarmSetting(){
-        final String title = "아내일점심은 뭐먹을까";
-        final String body = "내일 점심은 가지무침이다.";
+        final String title = buildNotificationTitle();
         Queue actionQueue=createAlramQueue();
         Binding binding= BindingBuilder.bind(actionQueue)
                 .to(createAlarmExchange())
@@ -72,16 +71,42 @@ public class RabbitMqManager {
                 messages.stream().forEach(x -> {
                     try {
                         com.sweep.project.redis.RedisMessageDto redisMessageDto= objectMapper.readValue(x.getBody(), RedisMessageDto.class);
+                        String body = buildNotificationBody(redisMessageDto);
                         Message message = Message.builder()
                                 .setToken(redisMessageDto.getToken())
-                                .setNotification(Notification.builder()
-                                        .setTitle(title)
-                                        .setBody(body)
-                                        .setImage(fcmImage)
-                                        /*
-                                        * 나중에 알람타입에 따라서 보내는 알람도 변경--> fix의경우 notification이아닌 다른 형태의 알람으로
-                                        * */
+                                // Android 설정
+                                .setAndroidConfig(AndroidConfig.builder()
+                                        .setNotification(AndroidNotification.builder()
+                                                .setTitle(title)
+                                                .setBody(body)
+                                                .setIcon(fcmImage)
+                                                .setColor("#FF5722")
+                                                .setChannelId("default")
+                                                .build())
                                         .build())
+                                // iOS 설정
+                                .setApnsConfig(ApnsConfig.builder()
+                                        .setFcmOptions(ApnsFcmOptions.builder()
+                                                .setImage(fcmImage)
+                                                .build())
+                                        .setAps(Aps.builder()
+                                                .setAlert(ApsAlert.builder()
+                                                        .setTitle(title)
+                                                        .setBody(body)
+                                                        .build())
+                                                .setSound("default")
+                                                .setMutableContent(true)
+                                                .build())
+                                        .build())
+                                // Web 설정
+                                .setWebpushConfig(WebpushConfig.builder()
+                                        .setNotification(WebpushNotification.builder()
+                                                .setTitle(title)
+                                                .setBody(body)
+                                                .setIcon(fcmImage)
+                                                .build())
+                                        .build())
+
                                 .build();
                         messages1.add(message);
                         metadata.add(redisMessageDto);
@@ -89,7 +114,7 @@ public class RabbitMqManager {
                         throw new RuntimeException(e);
                     }
                 });
-                fcmSendService.bulkPushWithLog(messages1, metadata, title, body);
+                fcmSendService.bulkPushWithLog(messages1, metadata);
             }
             catch (Exception e){
                 throw new RuntimeException(e.getMessage());
@@ -113,6 +138,35 @@ public class RabbitMqManager {
 
 
 
+    }
+
+    // 사용자에게 뜨는 문구 입니다.
+    // *참고* FCM Notification에서 .setTitle(" ")에 들어가면 제목 영역이어서 자동으로 UI에서 굵게 표시된다고합니다.
+
+
+    private String buildNotificationTitle() {
+        return "호다닥 알림";
+    }
+
+    private String buildNotificationBody(RedisMessageDto dto) {
+        if ("prepare".equalsIgnoreCase(dto.getAlarmType())) {
+            String base;
+            if (Boolean.TRUE.equals(dto.getPrepareStart())) {
+                base = "지금 준비 시작해야 해요";
+            } else if (dto.getRemainingMinutes() != null) {
+                base = dto.getRemainingMinutes() + "분 후에 출발해야 해요!";
+            } else {
+                base = "지금 준비 시작해야 해요";
+            }
+            if (dto.getCheckList() != null && !dto.getCheckList().isBlank()) {
+                base = base + "\n준비물: " + dto.getCheckList();
+            }
+            return base;
+        }
+        if ("departure".equalsIgnoreCase(dto.getAlarmType())) {
+            return "지금 출발해야 해요!";
+        }
+        return "알림이 도착했어요";
     }
 
     /*public void createBasicSetting(){

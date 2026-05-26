@@ -34,7 +34,14 @@ import java.util.stream.Collectors;
  *    TTL(ms) = max(0, triggerTime - schedulerRunAt)
  *    → 만료되면 RedisKeyExpirationListener 가 RabbitMQ 로 발행
  * 5. Redis key = "alarm-{memberId}-{alarmId}-{type}-{token}"
- *    PREPARE 알람은 type = "prepare{i}" (i=0..N-1) 로 키 충돌 방지
+ *    PREPARE 시작 알람은 "alarm-{memberId}-{alarmId}-prepare-start-{token}-{i}"
+ *    PREPARE 카운트 알람은 "alarm-{memberId}-{alarmId}-prepare-remain-{remainingMinutes}-{token}-{i}"
+ *
+ *    ex) 준비시간 30분, 간격 10분이라면
+ *    1. alarm-1-10-prepare-start-token-0       -> 첫 알림은 prepare-start
+ *    2. alarm-1-10-prepare-remain-20-token-1   -> 이후 알림은 prepare-remain-{분}
+ *    3. alarm-1-10-prepare-remain-10-token-2
+ *
  * </pre>
  */
 @Slf4j
@@ -57,6 +64,7 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
                 .collect(Collectors.groupingBy(AlarmBatchDto::getMemberId));
 
         List<RedisAlarmEntry> entries = new ArrayList<>();
+        List<ChecklistEntry> checklistEntries = new ArrayList<>();
 
         for (Map.Entry<Long, List<AlarmBatchDto>> entry : grouped.entrySet()) {
             Long memberId = entry.getKey();
@@ -73,11 +81,22 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
 
             for (AlarmBatchDto dto : entry.getValue()) {
                 collectEntries(dto, memberId, tokens, entries);
+                if (dto.getTotalTime() != null && dto.getArrivalTime() != null
+                        && dto.getCheckList() != null && !dto.getCheckList().isBlank()) {
+                    LocalDateTime departureTime = dto.getArrivalTime().minusMinutes(dto.getTotalTime());
+                    long ttl = Math.max(0L, Duration.between(schedulerRunAt, departureTime).toMillis());
+                    checklistEntries.add(new ChecklistEntry(
+                            "alarm-" + memberId + "-" + dto.getAlarmId() + "-checklist",
+                            dto.getCheckList(), ttl));
+                }
             }
         }
 
         if (!entries.isEmpty()) {
             bulkSet(entries);
+        }
+        if (!checklistEntries.isEmpty()) {
+            storeChecklists(checklistEntries);
         }
 
         log.info("[AlarmWriter] 청크 처리 완료 — 알람 수={} Redis 키 수={}", chunk.size(), entries.size());
@@ -115,10 +134,11 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
 
             for (int i = 0; i < count; i++) {
                 LocalDateTime triggerTime = prepareStart.plusMinutes((long) i * dto.getInterval());
+                int remainingMinutes = dto.getPrepareTime() - (i * dto.getInterval());
                 long ttlMillis = Math.max(0L, Duration.between(schedulerRunAt, triggerTime).toMillis());
                 for (String token : tokens) {
                     entries.add(new RedisAlarmEntry(
-                            buildKey(memberId, dto.getAlarmId(), AlarmType.PREPARE, token, i), ttlMillis));
+                            buildKey(memberId, dto.getAlarmId(), AlarmType.PREPARE, token, i, remainingMinutes), ttlMillis));
                 }
             }
         }
@@ -137,10 +157,33 @@ public class AlarmBatchWriter implements ItemWriter<AlarmBatchDto> {
         });
     }
 
+    private void storeChecklists(List<ChecklistEntry> checklistEntries) {
+        redisTemplate.executePipelined((org.springframework.data.redis.connection.RedisConnection conn) -> {
+            for (ChecklistEntry e : checklistEntries) {
+                conn.pSetEx(e.key().getBytes(StandardCharsets.UTF_8),
+                        e.ttlMillis(), e.value().getBytes(StandardCharsets.UTF_8));
+            }
+            return null;
+        });
+    }
+
     private String buildKey(Long memberId, Long alarmId, AlarmType type, String token, Integer idx) {
+        return buildKey(memberId, alarmId, type, token, idx, null);
+    }
+
+    private String buildKey(Long memberId, Long alarmId, AlarmType type, String token, Integer idx,
+                            Integer remainingMinutes) {
         String base = "alarm-" + memberId + "-" + alarmId + "-" + type.name().toLowerCase() + "-" + token;
+        if (type == AlarmType.PREPARE && remainingMinutes != null) {
+            if (idx != null && idx == 0) {
+                base = "alarm-" + memberId + "-" + alarmId + "-prepare-start-" + token;
+            } else {
+                base = "alarm-" + memberId + "-" + alarmId + "-prepare-remain-" + remainingMinutes + "-" + token;
+            }
+        }
         return idx != null ? base + "-" + idx : base;
     }
 
     private record RedisAlarmEntry(String key, long ttlMillis) {}
+    private record ChecklistEntry(String key, String value, long ttlMillis) {}
 }

@@ -6,6 +6,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sweep.project.alarm.batch.AlarmBatchDto;
 import com.sweep.project.alarm.domain.Alarm;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
 import org.springframework.stereotype.Repository;
 
@@ -29,6 +30,7 @@ import static com.sweep.project.route.domain.QRoute.route;
  */
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class AlarmTicketRepo {
 
     private final JPAQueryFactory jpaQueryFactory;
@@ -71,7 +73,8 @@ public class AlarmTicketRepo {
                         alarm.prepareTime,
                         alarm.interval,
                         alarm.arrivalTime,
-                        route.totalTime))
+                        route.totalTime,
+                        alarm.checklist))
                 .from(alarm)
                 .join(alarm.route, route)
                 .where(alarm.deleted.isFalse()
@@ -83,13 +86,15 @@ public class AlarmTicketRepo {
     }
 
     public List<Alarm> getAlarmList(Long memberId, LocalDateTime currentTime){
+        currentTime=currentTime.minusMinutes(20L);
+        log.info("currentTIme:{}",currentTime);
         return jpaQueryFactory.select(alarm)
                 .from(alarm)
                 .join(member)
                 .on(alarm.member.eq(member))
                 .where(alarm.member.id.eq(memberId).and(alarm.deleted.isFalse())
                         .and(alarm.arrivalTime.after(currentTime)))
-                .orderBy(alarm.arrivalTime.asc())
+                .orderBy(alarm.arrivalTime.asc(),alarm.prepareTime.asc())
                 .fetch();
     }
 }
