@@ -63,7 +63,7 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), req.interval(), tokens, req.checklist(),now);
+                    alarm.getActualTime(), totalTime, req.prepareTime(), req.interval(), tokens, req.checklist(),now);
         }
 
         return new AlarmDetailResponse(alarm);
@@ -128,7 +128,7 @@ public class AlarmService {
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(), req.startTime(), req.arrivalTime(),
-                    totalTime, req.prepareTime(), newInterval, tokens, req.checklist(),now);
+                    alarm.getActualTime(), totalTime, req.prepareTime(), newInterval, tokens, req.checklist(),now);
         }
     }
 
@@ -141,18 +141,21 @@ public class AlarmService {
             throw new RuntimeException("다시알림 간격은 준비시간보다 클 수 없습니다");
         }
 
-        alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
-        alarm.updateSettings(req.prepareTime(), req.interval(), req.checklist());
-
         Integer totalTime = alarm.getRoute().getTotalTime();
-        if (totalTime != null) {
+        LocalDateTime newStartTime = AlarmTimeCalculator.calculatePrepareStartTime(
+                alarm.getArrivalTime(), alarm.getActualTime(), totalTime, req.prepareTime());
+
+        alarmRedisService.deleteAlarmKeys(alarm.getMemberId(), alarm.getAlarmId());
+        alarm.updateSettings(newStartTime, req.prepareTime(), req.interval(), req.checklist());
+
+        if (AlarmTimeCalculator.hasTravelTime(alarm.getActualTime(), totalTime)) {
             LocalDateTime now = LocalDateTime.now();
             List<String> tokens = fcmTokenRepository.findAllByMemberId(alarm.getMemberId())
                     .stream().map(FcmToken::getToken).collect(Collectors.toList());
             alarmRedisService.registerTodayIfFirable(
                     alarm.getAlarmId(), alarm.getMemberId(),
-                    alarm.getStartTime(), alarm.getArrivalTime(),
-                    totalTime, req.prepareTime(), req.interval(),
+                    newStartTime, alarm.getArrivalTime(),
+                    alarm.getActualTime(), totalTime, req.prepareTime(), req.interval(),
                     tokens, req.checklist(), now);
         }
     }
