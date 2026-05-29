@@ -31,7 +31,8 @@ public class FavoriteLocationService {
         Member member = memberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 회원입니다. id=" + memberId));
         String name = req.name().trim();
-        String address = req.address().trim();
+        String placeName = req.placeName();
+        String address = req.address();
 
         if (Boolean.TRUE.equals(member.getDeleted())) {
             throw new IllegalStateException("탈퇴한 회원은 즐겨찾기를 추가할 수 없습니다.");
@@ -49,6 +50,7 @@ public class FavoriteLocationService {
         FavoriteLocation favoriteLocation = FavoriteLocation.builder()
                 .member(member)
                 .name(name)
+                .placeName(placeName)
                 .address(address)
                 .x(req.x())
                 .y(req.y())

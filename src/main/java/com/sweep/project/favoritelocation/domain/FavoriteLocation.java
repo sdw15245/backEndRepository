@@ -26,6 +26,9 @@ public class FavoriteLocation {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Column(nullable = false, length = 100)
+    private String placeName;
+
     @Column(nullable = false, length = 255)
     private String address;
 
@@ -39,10 +42,11 @@ public class FavoriteLocation {
     private LocalDateTime createdAt;
 
     @Builder
-    public FavoriteLocation(Member member, String name, String address,
+    public FavoriteLocation(Member member, String name, String placeName, String address,
                             double x, double y) {
         this.member = member;
         this.name = name;
+        this.placeName = placeName;
         this.address = address;
         this.x = x;
         this.y = y;

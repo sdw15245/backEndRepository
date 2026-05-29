@@ -14,6 +14,11 @@ public record FavoriteLocationCreateRequest(
         @Size(max = 50)
         String name,
 
+        @Schema(description = "Kakao map search result place name", example = "신촌역 2호선", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotBlank
+        @Size(max = 100)
+        String placeName,
+
         @Schema(description = "국내 대중교통 경로 탐색에 사용할 도로명 주소", example = "서울특별시 종로구 세종대로 1", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank
         @Size(max = 255)
