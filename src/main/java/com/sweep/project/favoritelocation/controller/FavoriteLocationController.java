@@ -30,7 +30,7 @@ public class FavoriteLocationController {
             summary = "즐겨찾기 장소 등록",
             description = """
                     국내 대중교통 경로 탐색에 사용할 즐겨찾기 장소를 등록합니다.
-                    - name, address, x, y
+                    - name, placeName, address, x, y
                     - 회원 ID는 인증 토큰에서 자동으로 식별됩니다.
                     - 동일 회원의 name 중복 불가능
                     - 회원당 최대 5개까지 등록할 수 있습니다.

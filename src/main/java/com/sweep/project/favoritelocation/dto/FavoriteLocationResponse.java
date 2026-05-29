@@ -16,6 +16,9 @@ public class FavoriteLocationResponse {
     @Schema(description = "즐겨찾기 장소 이름", example = "우리집")
     private final String name;
 
+    @Schema(description = "Kakao map search result place name", example = "신촌역 2호선")
+    private final String placeName;
+
     @Schema(description = "국내 대중교통 경로 탐색에 사용할 도로명 주소", example = "서울특별시 종로구 세종대로 1")
     private final String address;
 
@@ -31,6 +34,7 @@ public class FavoriteLocationResponse {
     public FavoriteLocationResponse(FavoriteLocation fl) {
         this.id = fl.getId();
         this.name = fl.getName();
+        this.placeName = fl.getPlaceName();
         this.address = fl.getAddress();
         this.x = fl.getX();
         this.y = fl.getY();
