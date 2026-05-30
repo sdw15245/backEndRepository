@@ -23,12 +23,14 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
     private JwtUtility jwtUtility;
     private RedisUserInfoService redisUserInfoService;
     private ObjectMapper objectMapper;
+
     public CustomOAuth2LoginSuccessHandler(JwtUtility jwtUtility,
                                            RedisUserInfoService redisUserInfoService, ObjectMapper objectMapper) {
         this.jwtUtility = jwtUtility;
         this.redisUserInfoService = redisUserInfoService;
         this.objectMapper = objectMapper;
     }
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         try {
@@ -38,9 +40,8 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
             String refreshToken = jwtUtility.genRefreshToken(customOAuth2User.getId());
             String member = objectMapper.writeValueAsString(customOAuth2User.getMember());
             redisUserInfoService.setLoginUserInfo(customOAuth2User.getId(), member, refreshToken);
-            response.sendRedirect("http://localhost:5173/oauth2/callback?token="+accessToken);
-            //response.addHeader(AUTHORIZATION, TOKEN_PREFIX.getValue() + accessToken);
-            //response.sendRedirect("https://hodadak.vercel.app/oauth2/callback?token=" + accessToken);
+            //response.sendRedirect("http://localhost:5173/oauth2/callback?token="+accessToken);
+            response.sendRedirect("https://hodadak.vercel.app/oauth2/callback?token=" + accessToken);
             log.info("{} 유저에대한 로그인이 정상적으로 되었습니다", customOAuth2User.getEmail());
         }
         catch (Exception e){
@@ -48,6 +49,7 @@ public class CustomOAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSucc
             sendErrorResponse(response, HttpStatus.BAD_REQUEST,e.getMessage());
         }
     }
+
     private void sendErrorResponse(HttpServletResponse response, HttpStatus httpStatus, String message) throws
             IOException {
         response.setStatus(httpStatus.value());
