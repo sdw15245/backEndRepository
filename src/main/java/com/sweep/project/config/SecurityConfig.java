@@ -7,6 +7,7 @@ import com.sweep.project.security.filter.JwtAuthFilter;
 import com.sweep.project.security.handler.CustomLogOutHandler;
 import com.sweep.project.security.handler.CustomOAuth2LoginFailer;
 import com.sweep.project.security.handler.CustomOAuth2LoginSuccessHandler;
+import com.sweep.project.security.repository.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.sweep.project.security.service.CustomOAuth2Service;
 import com.sweep.project.util.jwt.JwtUtility;
 import lombok.RequiredArgsConstructor;
@@ -63,7 +64,11 @@ public class SecurityConfig {
                 .invalidateHttpSession(true)
                 .logoutSuccessHandler(new CustomLogOutHandler(jwtUtility,redisUserInfoService,objectMapper)));
 
-        security.oauth2Login(oauth2->oauth2.userInfoEndpoint(userinfo->userinfo.userService(
+        security.oauth2Login(oauth2->oauth2
+                .authorizationEndpoint(endpoint ->
+                        endpoint.authorizationRequestRepository(
+                                new HttpCookieOAuth2AuthorizationRequestRepository()))
+                .userInfoEndpoint(userinfo->userinfo.userService(
                         new CustomOAuth2Service(memberRepository)))
                 .successHandler(new CustomOAuth2LoginSuccessHandler(jwtUtility,redisUserInfoService,objectMapper))
                 .failureHandler(new CustomOAuth2LoginFailer(objectMapper))
