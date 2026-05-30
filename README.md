@@ -54,5 +54,10 @@
 <br>
 <br>
 <h2>📂 Server Architecture</h2>
-<img width="1201" height="731" alt="제목 없는 다이어그램 drawio" src="https://github.com/user-attachments/assets/96546c33-b331-443a-8767-573cb61ed7d7" />
+<img width="2432" height="1785" alt="undefined (5)" src="https://github.com/user-attachments/assets/47f679c3-58ab-4920-8676-8dfbd3e12d2e" />
+
+
+
+
+
 
