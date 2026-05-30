@@ -54,7 +54,9 @@
 <br>
 <br>
 <h2>📂 Server Architecture</h2>
-<img width="2449" height="1822" alt="undefined (2)" src="https://github.com/user-attachments/assets/183246dc-3122-4479-9a90-07b49d9c98ae" />
+<img width="2432" height="1785" alt="undefined (5)" src="https://github.com/user-attachments/assets/47f679c3-58ab-4920-8676-8dfbd3e12d2e" />
+
+
 
 
 
